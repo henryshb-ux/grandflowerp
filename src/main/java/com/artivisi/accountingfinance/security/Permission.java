@@ -1,0 +1,409 @@
+package com.artivisi.accountingfinance.security;
+
+import com.artivisi.accountingfinance.enums.Role;
+import java.util.Set;
+
+/**
+ * Permission constants and role-permission mapping.
+ * Permissions are additive - users get combined permissions from all their roles.
+ */
+public final class Permission {
+
+    private Permission() {}
+
+    // Dashboard
+    public static final String DASHBOARD_VIEW = "DASHBOARD_VIEW";
+
+    // Transactions
+    public static final String TRANSACTION_VIEW = "TRANSACTION_VIEW";
+    public static final String TRANSACTION_CREATE = "TRANSACTION_CREATE";
+    public static final String TRANSACTION_EDIT = "TRANSACTION_EDIT";
+    public static final String TRANSACTION_POST = "TRANSACTION_POST";
+    public static final String TRANSACTION_VOID = "TRANSACTION_VOID";
+    public static final String TRANSACTION_DELETE = "TRANSACTION_DELETE";
+    public static final String TRANSACTION_PURGE = "TRANSACTION_PURGE";
+
+    // Drafts (Telegram receipts)
+    public static final String DRAFT_VIEW = "DRAFT_VIEW";
+    public static final String DRAFT_APPROVE = "DRAFT_APPROVE";
+    public static final String DRAFT_REJECT = "DRAFT_REJECT";
+
+    // Journals
+    public static final String JOURNAL_VIEW = "JOURNAL_VIEW";
+    public static final String JOURNAL_CREATE = "JOURNAL_CREATE";
+    public static final String JOURNAL_EDIT = "JOURNAL_EDIT";
+    public static final String JOURNAL_POST = "JOURNAL_POST";
+    public static final String JOURNAL_VOID = "JOURNAL_VOID";
+
+    // Reports
+    public static final String REPORT_VIEW = "REPORT_VIEW";
+    public static final String REPORT_EXPORT = "REPORT_EXPORT";
+    public static final String TAX_REPORT_VIEW = "TAX_REPORT_VIEW";
+    public static final String TAX_EXPORT = "TAX_EXPORT";
+
+    // Chart of Accounts
+    public static final String ACCOUNT_VIEW = "ACCOUNT_VIEW";
+    public static final String ACCOUNT_CREATE = "ACCOUNT_CREATE";
+    public static final String ACCOUNT_EDIT = "ACCOUNT_EDIT";
+    public static final String ACCOUNT_DELETE = "ACCOUNT_DELETE";
+
+    // Templates
+    public static final String TEMPLATE_VIEW = "TEMPLATE_VIEW";
+    public static final String TEMPLATE_CREATE = "TEMPLATE_CREATE";
+    public static final String TEMPLATE_EDIT = "TEMPLATE_EDIT";
+    public static final String TEMPLATE_DELETE = "TEMPLATE_DELETE";
+
+    // Clients
+    public static final String CLIENT_VIEW = "CLIENT_VIEW";
+    public static final String CLIENT_CREATE = "CLIENT_CREATE";
+    public static final String CLIENT_EDIT = "CLIENT_EDIT";
+    public static final String CLIENT_DELETE = "CLIENT_DELETE";
+
+    // Projects
+    public static final String PROJECT_VIEW    = "PROJECT_VIEW";
+    public static final String PROJECT_CREATE  = "PROJECT_CREATE";
+    public static final String PROJECT_EDIT    = "PROJECT_EDIT";
+    public static final String PROJECT_DELETE  = "PROJECT_DELETE";
+    public static final String PROJECT_FINANCE = "PROJECT_FINANCE";
+
+    // Invoices
+    public static final String INVOICE_VIEW = "INVOICE_VIEW";
+    public static final String INVOICE_CREATE = "INVOICE_CREATE";
+    public static final String INVOICE_EDIT = "INVOICE_EDIT";
+    public static final String INVOICE_SEND = "INVOICE_SEND";
+    public static final String INVOICE_MARK_PAID = "INVOICE_MARK_PAID";
+
+    // Amortization
+    public static final String AMORTIZATION_VIEW = "AMORTIZATION_VIEW";
+    public static final String AMORTIZATION_CREATE = "AMORTIZATION_CREATE";
+    public static final String AMORTIZATION_EDIT = "AMORTIZATION_EDIT";
+    public static final String AMORTIZATION_POST = "AMORTIZATION_POST";
+
+    // Fixed Assets
+    public static final String ASSET_VIEW = "ASSET_VIEW";
+    public static final String ASSET_CREATE = "ASSET_CREATE";
+    public static final String ASSET_EDIT = "ASSET_EDIT";
+    public static final String ASSET_DELETE = "ASSET_DELETE";
+    public static final String ASSET_DEPRECIATE = "ASSET_DEPRECIATE";
+    public static final String ASSET_DISPOSE = "ASSET_DISPOSE";
+
+    // Inventory / Products
+    public static final String PRODUCT_VIEW = "PRODUCT_VIEW";
+    public static final String PRODUCT_CREATE = "PRODUCT_CREATE";
+    public static final String PRODUCT_EDIT = "PRODUCT_EDIT";
+    public static final String PRODUCT_DELETE = "PRODUCT_DELETE";
+    public static final String INVENTORY_VIEW = "INVENTORY_VIEW";
+    public static final String INVENTORY_PURCHASE = "INVENTORY_PURCHASE";
+    public static final String INVENTORY_SALE = "INVENTORY_SALE";
+    public static final String INVENTORY_ADJUST = "INVENTORY_ADJUST";
+
+    // Tax Calendar
+    public static final String TAX_CALENDAR_VIEW = "TAX_CALENDAR_VIEW";
+    public static final String TAX_CALENDAR_MANAGE = "TAX_CALENDAR_MANAGE";
+
+    // Fiscal Periods
+    public static final String FISCAL_PERIOD_VIEW = "FISCAL_PERIOD_VIEW";
+    public static final String FISCAL_PERIOD_MANAGE = "FISCAL_PERIOD_MANAGE";
+
+    // Employees
+    public static final String EMPLOYEE_VIEW = "EMPLOYEE_VIEW";
+    public static final String EMPLOYEE_CREATE = "EMPLOYEE_CREATE";
+    public static final String EMPLOYEE_EDIT = "EMPLOYEE_EDIT";
+    public static final String EMPLOYEE_DELETE = "EMPLOYEE_DELETE";
+
+    // Salary Components
+    public static final String SALARY_COMPONENT_VIEW = "SALARY_COMPONENT_VIEW";
+    public static final String SALARY_COMPONENT_MANAGE = "SALARY_COMPONENT_MANAGE";
+
+    // Payroll
+    public static final String PAYROLL_VIEW = "PAYROLL_VIEW";
+    public static final String PAYROLL_CREATE = "PAYROLL_CREATE";
+    public static final String PAYROLL_APPROVE = "PAYROLL_APPROVE";
+    public static final String PAYROLL_POST = "PAYROLL_POST";
+    public static final String PAYROLL_CANCEL = "PAYROLL_CANCEL";
+    public static final String PAYROLL_EXPORT = "PAYROLL_EXPORT";
+
+    // Calculators (BPJS, PPh 21)
+    public static final String CALCULATOR_USE = "CALCULATOR_USE";
+
+    // Data Import
+    public static final String DATA_IMPORT = "DATA_IMPORT";
+
+    // Settings
+    public static final String SETTINGS_VIEW = "SETTINGS_VIEW";
+    public static final String SETTINGS_EDIT = "SETTINGS_EDIT";
+    public static final String TELEGRAM_MANAGE = "TELEGRAM_MANAGE"; // Manage own Telegram integration
+
+    // Security Audit Logs
+    public static final String AUDIT_LOG_VIEW = "AUDIT_LOG_VIEW";
+
+    // Data Subject Rights (GDPR/UU PDP) - Admin only
+    public static final String DATA_SUBJECT_VIEW = "DATA_SUBJECT_VIEW";
+    public static final String DATA_SUBJECT_EXPORT = "DATA_SUBJECT_EXPORT";
+    public static final String DATA_SUBJECT_ANONYMIZE = "DATA_SUBJECT_ANONYMIZE";
+
+    // Analysis Reports
+    public static final String ANALYSIS_REPORT_VIEW = "ANALYSIS_REPORT_VIEW";
+
+    // Tags
+    public static final String TAG_VIEW = "TAG_VIEW";
+    public static final String TAG_CREATE = "TAG_CREATE";
+    public static final String TAG_EDIT = "TAG_EDIT";
+    public static final String TAG_DELETE = "TAG_DELETE";
+
+    // Smart Alerts
+    public static final String ALERT_VIEW = "ALERT_VIEW";
+    public static final String ALERT_CONFIG = "ALERT_CONFIG";
+    public static final String ALERT_ACKNOWLEDGE = "ALERT_ACKNOWLEDGE";
+
+    // Vendors
+    public static final String VENDOR_VIEW = "VENDOR_VIEW";
+    public static final String VENDOR_CREATE = "VENDOR_CREATE";
+    public static final String VENDOR_EDIT = "VENDOR_EDIT";
+    public static final String VENDOR_DELETE = "VENDOR_DELETE";
+
+    // Bills
+    public static final String BILL_VIEW = "BILL_VIEW";
+    public static final String BILL_CREATE = "BILL_CREATE";
+    public static final String BILL_EDIT = "BILL_EDIT";
+    public static final String BILL_APPROVE = "BILL_APPROVE";
+    public static final String BILL_MARK_PAID = "BILL_MARK_PAID";
+
+    // Recurring Transactions
+    public static final String RECURRING_VIEW = "RECURRING_VIEW";
+    public static final String RECURRING_CREATE = "RECURRING_CREATE";
+    public static final String RECURRING_EDIT = "RECURRING_EDIT";
+    public static final String RECURRING_DELETE = "RECURRING_DELETE";
+
+    // Bank Reconciliation
+    public static final String BANK_RECONCILIATION_VIEW = "BANK_RECONCILIATION_VIEW";
+    public static final String BANK_RECONCILIATION_IMPORT = "BANK_RECONCILIATION_IMPORT";
+    public static final String BANK_RECONCILIATION_MATCH = "BANK_RECONCILIATION_MATCH";
+    public static final String BANK_RECONCILIATION_COMPLETE = "BANK_RECONCILIATION_COMPLETE";
+    public static final String BANK_RECONCILIATION_CONFIG = "BANK_RECONCILIATION_CONFIG";
+
+    // User Management (Admin only)
+    public static final String USER_VIEW = "USER_VIEW";
+    public static final String USER_CREATE = "USER_CREATE";
+    public static final String USER_EDIT = "USER_EDIT";
+    public static final String USER_DELETE = "USER_DELETE";
+    public static final String USER_ASSIGN_ROLES = "USER_ASSIGN_ROLES";
+
+    // Employee Self-Service
+    public static final String OWN_PAYSLIP_VIEW = "OWN_PAYSLIP_VIEW";
+    public static final String OWN_PROFILE_VIEW = "OWN_PROFILE_VIEW";
+    public static final String OWN_PROFILE_EDIT = "OWN_PROFILE_EDIT";
+
+    // RFQ
+    public static final String RFQ_VIEW    = "RFQ_VIEW";
+    public static final String RFQ_CREATE  = "RFQ_CREATE";
+    public static final String RFQ_EDIT    = "RFQ_EDIT";
+    public static final String RFQ_DELETE  = "RFQ_DELETE";
+
+    // Quotation
+    public static final String QUOTATION_VIEW    = "QUOTATION_VIEW";
+    public static final String QUOTATION_CREATE  = "QUOTATION_CREATE";
+    public static final String QUOTATION_EDIT    = "QUOTATION_EDIT";
+    public static final String QUOTATION_SEND    = "QUOTATION_SEND";
+    public static final String QUOTATION_DELETE  = "QUOTATION_DELETE";
+
+    // Sales Order
+    public static final String SALES_ORDER_VIEW    = "SALES_ORDER_VIEW";
+    public static final String SALES_ORDER_CREATE  = "SALES_ORDER_CREATE";
+    public static final String SALES_ORDER_EDIT    = "SALES_ORDER_EDIT";
+    public static final String SALES_ORDER_DELETE  = "SALES_ORDER_DELETE";
+
+    // Delivery Order
+    public static final String DELIVERY_ORDER_VIEW    = "DELIVERY_ORDER_VIEW";
+    public static final String DELIVERY_ORDER_CREATE  = "DELIVERY_ORDER_CREATE";
+    public static final String DELIVERY_ORDER_EDIT    = "DELIVERY_ORDER_EDIT";
+
+    /**
+     * Get all permissions for a given role.
+     */
+    public static Set<String> getPermissionsForRole(Role role) {
+        return switch (role) {
+            case ADMIN -> Set.of(
+                // All permissions
+                DASHBOARD_VIEW,
+                TRANSACTION_VIEW, TRANSACTION_CREATE, TRANSACTION_EDIT, TRANSACTION_POST, TRANSACTION_VOID, TRANSACTION_DELETE, TRANSACTION_PURGE,
+                DRAFT_VIEW, DRAFT_APPROVE, DRAFT_REJECT,
+                JOURNAL_VIEW, JOURNAL_CREATE, JOURNAL_EDIT, JOURNAL_POST, JOURNAL_VOID,
+                REPORT_VIEW, REPORT_EXPORT, TAX_REPORT_VIEW, TAX_EXPORT,
+                ACCOUNT_VIEW, ACCOUNT_CREATE, ACCOUNT_EDIT, ACCOUNT_DELETE,
+                TEMPLATE_VIEW, TEMPLATE_CREATE, TEMPLATE_EDIT, TEMPLATE_DELETE,
+                CLIENT_VIEW, CLIENT_CREATE, CLIENT_EDIT, CLIENT_DELETE,
+                PROJECT_VIEW, PROJECT_CREATE, PROJECT_EDIT, PROJECT_DELETE,
+                INVOICE_VIEW, INVOICE_CREATE, INVOICE_EDIT, INVOICE_SEND, INVOICE_MARK_PAID,
+                VENDOR_VIEW, VENDOR_CREATE, VENDOR_EDIT, VENDOR_DELETE,
+                BILL_VIEW, BILL_CREATE, BILL_EDIT, BILL_APPROVE, BILL_MARK_PAID,
+                AMORTIZATION_VIEW, AMORTIZATION_CREATE, AMORTIZATION_EDIT, AMORTIZATION_POST,
+                ASSET_VIEW, ASSET_CREATE, ASSET_EDIT, ASSET_DELETE, ASSET_DEPRECIATE, ASSET_DISPOSE,
+                PRODUCT_VIEW, PRODUCT_CREATE, PRODUCT_EDIT, PRODUCT_DELETE, INVENTORY_VIEW, INVENTORY_PURCHASE, INVENTORY_SALE, INVENTORY_ADJUST,
+                TAX_CALENDAR_VIEW, TAX_CALENDAR_MANAGE,
+                FISCAL_PERIOD_VIEW, FISCAL_PERIOD_MANAGE,
+                EMPLOYEE_VIEW, EMPLOYEE_CREATE, EMPLOYEE_EDIT, EMPLOYEE_DELETE,
+                SALARY_COMPONENT_VIEW, SALARY_COMPONENT_MANAGE,
+                PAYROLL_VIEW, PAYROLL_CREATE, PAYROLL_APPROVE, PAYROLL_POST, PAYROLL_CANCEL, PAYROLL_EXPORT,
+                CALCULATOR_USE,
+                RECURRING_VIEW, RECURRING_CREATE, RECURRING_EDIT, RECURRING_DELETE,
+                BANK_RECONCILIATION_VIEW, BANK_RECONCILIATION_IMPORT, BANK_RECONCILIATION_MATCH, BANK_RECONCILIATION_COMPLETE, BANK_RECONCILIATION_CONFIG,
+                ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW, ALERT_CONFIG, ALERT_ACKNOWLEDGE,
+                TAG_VIEW, TAG_CREATE, TAG_EDIT, TAG_DELETE,
+                DATA_IMPORT,
+                SETTINGS_VIEW, SETTINGS_EDIT,
+                TELEGRAM_MANAGE,
+                AUDIT_LOG_VIEW,
+                DATA_SUBJECT_VIEW, DATA_SUBJECT_EXPORT, DATA_SUBJECT_ANONYMIZE,
+                USER_VIEW, USER_CREATE, USER_EDIT, USER_DELETE, USER_ASSIGN_ROLES,
+                OWN_PAYSLIP_VIEW, OWN_PROFILE_VIEW, OWN_PROFILE_EDIT
+            );
+
+            case OWNER -> Set.of(
+                // All business features, no user management
+                DASHBOARD_VIEW,
+                TRANSACTION_VIEW, TRANSACTION_CREATE, TRANSACTION_EDIT, TRANSACTION_POST, TRANSACTION_VOID, TRANSACTION_DELETE, TRANSACTION_PURGE,
+                DRAFT_VIEW, DRAFT_APPROVE, DRAFT_REJECT,
+                JOURNAL_VIEW, JOURNAL_CREATE, JOURNAL_EDIT, JOURNAL_POST, JOURNAL_VOID,
+                REPORT_VIEW, REPORT_EXPORT, TAX_REPORT_VIEW, TAX_EXPORT,
+                ACCOUNT_VIEW, ACCOUNT_CREATE, ACCOUNT_EDIT, ACCOUNT_DELETE,
+                TEMPLATE_VIEW, TEMPLATE_CREATE, TEMPLATE_EDIT, TEMPLATE_DELETE,
+                CLIENT_VIEW, CLIENT_CREATE, CLIENT_EDIT, CLIENT_DELETE,
+                PROJECT_VIEW, PROJECT_CREATE, PROJECT_EDIT, PROJECT_DELETE,
+                INVOICE_VIEW, INVOICE_CREATE, INVOICE_EDIT, INVOICE_SEND, INVOICE_MARK_PAID,
+                VENDOR_VIEW, VENDOR_CREATE, VENDOR_EDIT, VENDOR_DELETE,
+                BILL_VIEW, BILL_CREATE, BILL_EDIT, BILL_APPROVE, BILL_MARK_PAID,
+                AMORTIZATION_VIEW, AMORTIZATION_CREATE, AMORTIZATION_EDIT, AMORTIZATION_POST,
+                ASSET_VIEW, ASSET_CREATE, ASSET_EDIT, ASSET_DELETE, ASSET_DEPRECIATE, ASSET_DISPOSE,
+                PRODUCT_VIEW, PRODUCT_CREATE, PRODUCT_EDIT, PRODUCT_DELETE, INVENTORY_VIEW, INVENTORY_PURCHASE, INVENTORY_SALE, INVENTORY_ADJUST,
+                TAX_CALENDAR_VIEW, TAX_CALENDAR_MANAGE,
+                FISCAL_PERIOD_VIEW, FISCAL_PERIOD_MANAGE,
+                EMPLOYEE_VIEW, EMPLOYEE_CREATE, EMPLOYEE_EDIT, EMPLOYEE_DELETE,
+                SALARY_COMPONENT_VIEW, SALARY_COMPONENT_MANAGE,
+                PAYROLL_VIEW, PAYROLL_CREATE, PAYROLL_APPROVE, PAYROLL_POST, PAYROLL_CANCEL, PAYROLL_EXPORT,
+                CALCULATOR_USE,
+                RECURRING_VIEW, RECURRING_CREATE, RECURRING_EDIT, RECURRING_DELETE,
+                BANK_RECONCILIATION_VIEW, BANK_RECONCILIATION_IMPORT, BANK_RECONCILIATION_MATCH, BANK_RECONCILIATION_COMPLETE, BANK_RECONCILIATION_CONFIG,
+                ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW, ALERT_CONFIG, ALERT_ACKNOWLEDGE,
+                TAG_VIEW, TAG_CREATE, TAG_EDIT, TAG_DELETE,
+                DATA_IMPORT,
+                SETTINGS_VIEW, SETTINGS_EDIT,
+                TELEGRAM_MANAGE,
+                AUDIT_LOG_VIEW,
+                OWN_PAYSLIP_VIEW, OWN_PROFILE_VIEW, OWN_PROFILE_EDIT
+            );
+
+            case ACCOUNTANT -> Set.of(
+                // Accounting operations and reports
+                DASHBOARD_VIEW,
+                TRANSACTION_VIEW, TRANSACTION_CREATE, TRANSACTION_EDIT, TRANSACTION_POST, TRANSACTION_VOID,
+                DRAFT_VIEW, DRAFT_APPROVE, DRAFT_REJECT,
+                JOURNAL_VIEW, JOURNAL_CREATE, JOURNAL_EDIT, JOURNAL_POST, JOURNAL_VOID,
+                REPORT_VIEW, REPORT_EXPORT, TAX_REPORT_VIEW, TAX_EXPORT,
+                ACCOUNT_VIEW,
+                TEMPLATE_VIEW, TEMPLATE_CREATE, TEMPLATE_EDIT,
+                CLIENT_VIEW, CLIENT_CREATE, CLIENT_EDIT,
+                PROJECT_VIEW, PROJECT_CREATE, PROJECT_EDIT,
+                INVOICE_VIEW, INVOICE_CREATE, INVOICE_EDIT, INVOICE_SEND, INVOICE_MARK_PAID,
+                VENDOR_VIEW, VENDOR_CREATE, VENDOR_EDIT, VENDOR_DELETE,
+                BILL_VIEW, BILL_CREATE, BILL_EDIT, BILL_APPROVE, BILL_MARK_PAID,
+                AMORTIZATION_VIEW, AMORTIZATION_CREATE, AMORTIZATION_EDIT, AMORTIZATION_POST,
+                ASSET_VIEW, ASSET_CREATE, ASSET_EDIT, ASSET_DEPRECIATE, ASSET_DISPOSE,
+                PRODUCT_VIEW, PRODUCT_CREATE, PRODUCT_EDIT, INVENTORY_VIEW, INVENTORY_PURCHASE, INVENTORY_SALE, INVENTORY_ADJUST,
+                TAX_CALENDAR_VIEW, TAX_CALENDAR_MANAGE,
+                FISCAL_PERIOD_VIEW, FISCAL_PERIOD_MANAGE,
+                EMPLOYEE_VIEW,
+                SALARY_COMPONENT_VIEW,
+                PAYROLL_VIEW, PAYROLL_CREATE, PAYROLL_APPROVE, PAYROLL_POST, PAYROLL_EXPORT,
+                RECURRING_VIEW, RECURRING_CREATE, RECURRING_EDIT, RECURRING_DELETE,
+                BANK_RECONCILIATION_VIEW, BANK_RECONCILIATION_IMPORT, BANK_RECONCILIATION_MATCH, BANK_RECONCILIATION_COMPLETE,
+                ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW, ALERT_ACKNOWLEDGE,
+                TAG_VIEW, TAG_CREATE, TAG_EDIT,
+                CALCULATOR_USE,
+                SETTINGS_VIEW, // Read-only access to settings (can view, but only edit own Telegram)
+                TELEGRAM_MANAGE,
+                OWN_PAYSLIP_VIEW, OWN_PROFILE_VIEW, OWN_PROFILE_EDIT
+            );
+
+            case STAFF -> Set.of(
+                // Limited daily operations
+                DASHBOARD_VIEW,
+                TRANSACTION_VIEW, TRANSACTION_CREATE,
+                DRAFT_VIEW,
+                JOURNAL_VIEW,
+                REPORT_VIEW,
+                ACCOUNT_VIEW,
+                TEMPLATE_VIEW,
+                CLIENT_VIEW,
+                PROJECT_VIEW,
+                INVOICE_VIEW,
+                VENDOR_VIEW,
+                BILL_VIEW,
+                ASSET_VIEW,
+                PRODUCT_VIEW, INVENTORY_VIEW,
+                RECURRING_VIEW,
+                BANK_RECONCILIATION_VIEW,
+                ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW,
+                TAG_VIEW,
+                CALCULATOR_USE,
+                SETTINGS_VIEW, // Read-only access to settings (can view, but only edit own Telegram)
+                TELEGRAM_MANAGE,
+                OWN_PAYSLIP_VIEW, OWN_PROFILE_VIEW, OWN_PROFILE_EDIT
+            );
+
+            case AUDITOR -> Set.of(
+                // Read-only access to all reports
+                DASHBOARD_VIEW,
+                TRANSACTION_VIEW,
+                DRAFT_VIEW,
+                JOURNAL_VIEW,
+                REPORT_VIEW, REPORT_EXPORT, TAX_REPORT_VIEW, TAX_EXPORT,
+                ACCOUNT_VIEW,
+                TEMPLATE_VIEW,
+                CLIENT_VIEW,
+                PROJECT_VIEW,
+                INVOICE_VIEW,
+                VENDOR_VIEW,
+                BILL_VIEW,
+                AMORTIZATION_VIEW,
+                ASSET_VIEW,
+                PRODUCT_VIEW, INVENTORY_VIEW,
+                TAX_CALENDAR_VIEW,
+                FISCAL_PERIOD_VIEW,
+                EMPLOYEE_VIEW,
+                SALARY_COMPONENT_VIEW,
+                PAYROLL_VIEW, PAYROLL_EXPORT,
+                RECURRING_VIEW,
+                BANK_RECONCILIATION_VIEW,
+                ANALYSIS_REPORT_VIEW,
+                ALERT_VIEW,
+                TAG_VIEW,
+                CALCULATOR_USE,
+                AUDIT_LOG_VIEW,
+                OWN_PROFILE_VIEW
+            );
+
+            case EMPLOYEE -> Set.of(
+                // Own payslips and profile only
+                OWN_PAYSLIP_VIEW,
+                OWN_PROFILE_VIEW,
+                OWN_PROFILE_EDIT
+            );
+        };
+    }
+
+    /**
+     * Get combined permissions for multiple roles.
+     */
+    public static Set<String> getPermissionsForRoles(Set<Role> roles) {
+        Set<String> permissions = new java.util.HashSet<>();
+        for (Role role : roles) {
+            permissions.addAll(getPermissionsForRole(role));
+        }
+        return permissions;
+    }
+}
