@@ -1,0 +1,108 @@
+spring.application.name={{ app_name }}
+
+server.port={{ app_port }}
+
+# Forward headers from nginx proxy (for correct redirect URLs with HTTPS)
+server.forward-headers-strategy=native
+
+# Graceful shutdown - wait for active requests to complete
+server.shutdown=graceful
+spring.lifecycle.timeout-per-shutdown-phase=30s
+
+# Database connection with SSL
+# sslmode=require ensures encrypted connection (localhost PostgreSQL with SSL enabled)
+spring.datasource.url=jdbc:postgresql://localhost:5432/{{ db_name }}?sslmode={{ db_ssl_mode | default('require') }}
+spring.datasource.username={{ db_user }}
+spring.datasource.password={{ db_password }}
+
+# HikariCP connection pool tuning
+# Keep pool small for single-tenant app on 2GB VPS
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=2
+spring.datasource.hikari.idle-timeout=300000
+spring.datasource.hikari.max-lifetime=600000
+spring.datasource.hikari.connection-timeout=30000
+spring.datasource.hikari.leak-detection-threshold=60000
+spring.datasource.hikari.pool-name={{ app_name }}-pool
+
+# JPA/Hibernate configuration
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=false
+spring.jpa.properties.hibernate.jdbc.batch_size=25
+spring.jpa.properties.hibernate.order_inserts=true
+spring.jpa.properties.hibernate.order_updates=true
+
+# Tomcat tuning (uses virtual threads with Java 25)
+server.tomcat.threads.max=200
+server.tomcat.accept-count=100
+server.tomcat.max-connections=8192
+server.tomcat.connection-timeout=20000
+
+# Jackson JSON configuration
+spring.jackson.time-zone=Asia/Jakarta
+
+# Thymeleaf configuration
+spring.thymeleaf.cache=true
+
+# Logging
+logging.file.name=/var/log/{{ app_name }}/application.log
+logging.level.root=INFO
+
+# Document storage configuration
+app.storage.documents.path=/opt/{{ app_name }}/documents
+app.storage.documents.max-file-size={{ document_max_file_size | default(10485760) }}
+app.storage.documents.allowed-types={{ document_allowed_types | default('image/jpeg,image/png,image/gif,application/pdf') }}
+
+# Telegram Bot configuration
+telegram.bot.enabled={{ telegram_bot_enabled | default(false) | lower }}
+{% if telegram_bot_token is defined %}
+telegram.bot.token={{ telegram_bot_token }}
+{% endif %}
+{% if telegram_bot_username is defined %}
+telegram.bot.username={{ telegram_bot_username }}
+{% endif %}
+{% if telegram_webhook_url is defined %}
+telegram.bot.webhook.url={{ telegram_webhook_url }}
+{% endif %}
+{% if telegram_webhook_secret is defined %}
+telegram.bot.webhook.secret-token={{ telegram_webhook_secret }}
+{% endif %}
+
+# Google Cloud Vision configuration
+google.cloud.vision.enabled={{ google_cloud_vision_enabled | default(false) | lower }}
+{% if google_cloud_vision_enabled | default(false) %}
+google.cloud.vision.credentials-path=/opt/{{ app_name }}/gcp-credentials.json
+{% endif %}
+
+# Field-level encryption for PII (AES-256-GCM)
+{% if document_encryption_key is defined %}
+app.encryption.key={{ document_encryption_key }}
+{% endif %}
+
+# Remember Me (hash-based, 7 days)
+app.remember-me.key={{ app_remember_me_key }}
+
+# Payroll configuration
+{% if app_payroll_template_id is defined %}
+app.payroll.template-id={{ app_payroll_template_id }}
+{% endif %}
+
+# Theme configuration
+app.theme.name={{ app_theme_name | default('artivisi') }}
+app.theme.footer-text={{ app_theme_footer_text | default('ArtiVisi Intermedia') }}
+app.theme.dir=/opt/{{ app_name }}/themes
+
+# Demo mode — shows the "Data direset setiap hari pukul 00:00 WIB" banner.
+# Only emitted when app_demo_mode is set (demo instances). When absent the
+# DemoModeConfig boolean binds to false, so client deploys are unaffected.
+{% if app_demo_mode is defined %}
+app.demo-mode={{ app_demo_mode | lower }}
+{% endif %}
+
+# Actuator endpoints for monitoring
+management.endpoints.web.exposure.include=health,info,metrics,prometheus
+management.endpoint.health.show-details=when-authorized
+management.endpoint.health.probes.enabled=true
+management.health.livenessstate.enabled=true
+management.health.readinessstate.enabled=true

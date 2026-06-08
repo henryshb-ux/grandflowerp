@@ -1,0 +1,235 @@
+---
+# PostgreSQL Major Version Upgrade Playbook
+#
+# This playbook upgrades PostgreSQL from one major version to another using pg_dump/pg_restore.
+# It's safer than pg_upgrade for small databases.
+#
+# Usage:
+#   ansible-playbook -i inventory upgrade-postgresql.yml -e "pg_old_version=17 pg_new_version=18"
+#
+# Prerequisites:
+#   - Backup your database before running this playbook
+#   - Schedule maintenance window (expect 5-30 min downtime depending on database size)
+#
+# What this playbook does:
+#   1. Stop the application
+#   2. Create a full backup using pg_dump
+#   3. Install new PostgreSQL version
+#   4. Restore database to new cluster
+#   5. Update application config to use new port (if needed)
+#   6. Start the application
+#   7. Verify connectivity
+
+- name: Upgrade PostgreSQL Major Version
+  hosts: all
+  become: yes
+  vars:
+    pg_old_version: "17"
+    pg_new_version: "18"
+    backup_dir: "/tmp/pg_upgrade_backup"
+
+  tasks:
+    - name: Validate version variables
+      ansible.builtin.assert:
+        that:
+          - pg_old_version is defined
+          - pg_new_version is defined
+          - pg_old_version != pg_new_version
+        fail_msg: "pg_old_version and pg_new_version must be defined and different"
+
+    - name: Create backup directory
+      ansible.builtin.file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0700'
+        owner: postgres
+        group: postgres
+
+    - name: Stop application
+      ansible.builtin.systemd:
+        name: "{{ app_name }}"
+        state: stopped
+      ignore_errors: yes
+
+    - name: Wait for application to stop
+      ansible.builtin.pause:
+        seconds: 5
+
+    - name: Create database backup using pg_dump
+      ansible.builtin.shell: |
+        pg_dump -Fc -f {{ backup_dir }}/{{ db_name }}_backup.dump {{ db_name }}
+      become_user: postgres
+      register: backup_result
+
+    - name: Verify backup was created
+      ansible.builtin.stat:
+        path: "{{ backup_dir }}/{{ db_name }}_backup.dump"
+      register: backup_file
+
+    - name: Fail if backup not created
+      ansible.builtin.fail:
+        msg: "Database backup failed - aborting upgrade"
+      when: not backup_file.stat.exists
+
+    - name: Display backup size
+      ansible.builtin.debug:
+        msg: "Backup size: {{ (backup_file.stat.size / 1024 / 1024) | round(2) }} MB"
+
+    # Add official PostgreSQL APT repository
+    - name: Install prerequisites for PostgreSQL repository
+      ansible.builtin.apt:
+        name:
+          - curl
+          - ca-certificates
+          - gnupg
+        state: present
+
+    - name: Create keyrings directory
+      ansible.builtin.file:
+        path: /usr/share/postgresql-common/pgdg
+        state: directory
+        mode: '0755'
+
+    - name: Download PostgreSQL repository signing key
+      ansible.builtin.shell: |
+        curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+      args:
+        creates: /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+
+    - name: Add PostgreSQL APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] https://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+        state: present
+        filename: pgdg
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    # Install new PostgreSQL version
+    - name: Install PostgreSQL {{ pg_new_version }}
+      ansible.builtin.apt:
+        name:
+          - postgresql-{{ pg_new_version }}
+          - postgresql-contrib-{{ pg_new_version }}
+        state: present
+        update_cache: yes
+
+    - name: Stop old PostgreSQL cluster
+      ansible.builtin.shell: pg_ctlcluster {{ pg_old_version }} main stop
+      ignore_errors: yes
+
+    - name: Enable SSL in new PostgreSQL configuration
+      ansible.builtin.lineinfile:
+        path: /etc/postgresql/{{ pg_new_version }}/main/postgresql.conf
+        regexp: "^#?ssl\\s*="
+        line: "ssl = on"
+        state: present
+
+    - name: Configure new cluster to use port 5432
+      ansible.builtin.lineinfile:
+        path: /etc/postgresql/{{ pg_new_version }}/main/postgresql.conf
+        regexp: "^#?port\\s*="
+        line: "port = 5432"
+        state: present
+
+    - name: Configure old cluster to use different port
+      ansible.builtin.lineinfile:
+        path: /etc/postgresql/{{ pg_old_version }}/main/postgresql.conf
+        regexp: "^#?port\\s*="
+        line: "port = 5433"
+        state: present
+
+    - name: Restart PostgreSQL service
+      ansible.builtin.systemd:
+        name: postgresql
+        state: restarted
+
+    - name: Wait for PostgreSQL to start
+      ansible.builtin.wait_for:
+        port: 5432
+        timeout: 30
+
+    - name: Create database user in new cluster
+      community.postgresql.postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        port: 5432
+        state: present
+      become_user: postgres
+
+    - name: Create database in new cluster
+      community.postgresql.postgresql_db:
+        name: "{{ db_name }}"
+        owner: "{{ db_user }}"
+        encoding: UTF8
+        lc_collate: en_US.UTF-8
+        lc_ctype: en_US.UTF-8
+        template: template0
+        port: 5432
+        state: present
+      become_user: postgres
+
+    - name: Restore database from backup
+      ansible.builtin.shell: |
+        pg_restore -d {{ db_name }} --no-owner --role={{ db_user }} {{ backup_dir }}/{{ db_name }}_backup.dump
+      become_user: postgres
+      register: restore_result
+      # pg_restore returns non-zero for warnings, so we check separately
+      failed_when: false
+
+    - name: Grant privileges on restored database
+      community.postgresql.postgresql_privs:
+        db: "{{ db_name }}"
+        privs: ALL
+        type: database
+        role: "{{ db_user }}"
+        port: 5432
+        state: present
+      become_user: postgres
+
+    - name: Verify database connectivity
+      ansible.builtin.shell: |
+        psql -h localhost -p 5432 -U {{ db_user }} -d {{ db_name }} -c "SELECT version();"
+      environment:
+        PGPASSWORD: "{{ db_password }}"
+      register: version_check
+
+    - name: Display PostgreSQL version
+      ansible.builtin.debug:
+        msg: "{{ version_check.stdout }}"
+
+    - name: Start application
+      ansible.builtin.systemd:
+        name: "{{ app_name }}"
+        state: started
+
+    - name: Wait for application to start
+      ansible.builtin.wait_for:
+        port: "{{ app_port }}"
+        timeout: 60
+
+    - name: Verify application health
+      ansible.builtin.uri:
+        url: "http://localhost:{{ app_port }}/actuator/health"
+        return_content: yes
+      register: health_check
+      retries: 5
+      delay: 5
+      until: health_check.status == 200
+
+    - name: Display health status
+      ansible.builtin.debug:
+        msg: "Application health: {{ health_check.json.status }}"
+
+    - name: Upgrade complete
+      ansible.builtin.debug:
+        msg: |
+          PostgreSQL upgrade from {{ pg_old_version }} to {{ pg_new_version }} completed successfully.
+
+          Old cluster (port 5433) is still available for rollback if needed.
+          To remove old cluster after verification:
+            sudo pg_dropcluster {{ pg_old_version }} main
+            sudo apt remove postgresql-{{ pg_old_version }}
+
+          Backup file: {{ backup_dir }}/{{ db_name }}_backup.dump

@@ -1,0 +1,116 @@
+---
+- name: Setup Accounting Finance Application
+  hosts: accounting
+  become: yes
+
+  pre_tasks:
+    - name: Validate db_password is set
+      ansible.builtin.fail:
+        msg: "db_password is not set or uses default value"
+      when: db_password is not defined or db_password == 'CHANGE_THIS_DB_PASSWORD'
+
+    - name: Validate admin_username is set
+      ansible.builtin.fail:
+        msg: "admin_username is not set or uses default value"
+      when: admin_username is not defined or admin_username == 'CHANGE_THIS_USERNAME'
+
+    - name: Reject common admin usernames (security)
+      ansible.builtin.fail:
+        msg: "admin_username '{{ admin_username }}' is a common username susceptible to enumeration attacks. Use a unique username."
+      when: admin_username | lower in ['admin', 'administrator', 'root', 'superuser', 'sysadmin', 'user', 'test']
+
+    - name: Validate admin_password_plain is set
+      ansible.builtin.fail:
+        msg: "admin_password_plain is not set or uses default value"
+      when: admin_password_plain is not defined or admin_password_plain == 'CHANGE_THIS_ADMIN_PASSWORD'
+
+    - name: Generate bcrypt hash for admin password
+      ansible.builtin.set_fact:
+        admin_password_bcrypt: "{{ admin_password_plain | password_hash('bcrypt', rounds=10) }}"
+
+  roles:
+    - common
+    - postgresql
+    - app
+    - nginx
+    - backup
+
+  post_tasks:
+    - name: Read backup encryption key
+      ansible.builtin.slurp:
+        src: "/opt/{{ app_name }}/.backup-key"
+      register: backup_key_content
+      when: backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
+      ignore_errors: true
+
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "=== DEPLOYMENT COMPLETE ==="
+          - ""
+          - "Application URL: https://{{ app_domain }}"
+          - "Admin Login:     {{ admin_username }} / {{ admin_password_plain }}"
+          - ""
+          - "SERVICES:"
+          - "  Application:   systemctl status {{ app_name }}"
+          - "  Database:      PostgreSQL on localhost:5432"
+          - "  Web Server:    Nginx with SSL (Let's Encrypt)"
+          - ""
+          - "BACKUP SCHEDULE:"
+          - "  Local:         Daily {{ backup_cron_hour | default('2') }}:{{ backup_cron_minute | default('0') }}0 ({{ backup_retention_count | default(7) }} days retention)"
+          - "  Backblaze B2:  {{ 'Daily 03:00 (enabled)' if backup_b2_enabled | default(false) else 'Disabled' }}"
+          - "  Google Drive:  {{ 'Daily 04:00 (enabled)' if backup_gdrive_enabled | default(false) else 'Disabled' }}"
+          - ""
+          - "FILE LOCATIONS:"
+          - "  App Directory: /opt/{{ app_name }}/"
+          - "  Backups:       /opt/{{ app_name }}/backup/"
+          - "  Documents:     /opt/{{ app_name }}/documents/"
+          - "  Logs:          /var/log/{{ app_name }}/"
+          - ""
+
+    - name: Display additional sysadmin tasks
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "SYSADMIN CHECKLIST:"
+          - ""
+          - "[ ] Upload application JAR:"
+          - "    scp target/*.jar root@{{ app_domain }}:/opt/{{ app_name }}/app.jar"
+          - "    ssh root@{{ app_domain }} \"systemctl restart {{ app_name }}\""
+          - ""
+          - "[ ] Verify SSL certificate:"
+          - "    curl -I https://{{ app_domain }}"
+          - ""
+          - "[ ] Test backup manually:"
+          - "    sudo -u {{ app_user }} /opt/{{ app_name }}/scripts/backup.sh"
+          - ""
+          - "[ ] Import initial data (COA, templates):"
+          - "    See docs/deployment-guide.md"
+          - ""
+          - "[ ] Configure monitoring/alerts (optional)"
+          - ""
+
+    - name: Display encryption key warning (LAST - stays visible on screen)
+      ansible.builtin.debug:
+        msg:
+          - ""
+          - "!!! CRITICAL: SYSADMIN ACTION REQUIRED !!!"
+          - ""
+          - "BACKUP ENCRYPTION KEY (save this immediately!):"
+          - "{{ backup_key_content.content | b64decode | trim }}"
+          - ""
+          - "WARNING: WITHOUT THIS KEY, ENCRYPTED BACKUPS CANNOT BE RESTORED!"
+          - ""
+          - "Store in at least TWO locations:"
+          - "[ ] Password Manager (Bitwarden, 1Password, KeePass)"
+          - "[ ] Printed copy in physical safe"
+          - "[ ] Encrypted USB drive (separate location)"
+          - ""
+          - "After saving the key, verify you can decrypt a backup:"
+          - "  gpg --decrypt --passphrase-file <(echo \"KEY\") backup.gpg"
+          - ""
+      when:
+        - backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
+        - backup_key_content is defined
+        - backup_key_content.content is defined

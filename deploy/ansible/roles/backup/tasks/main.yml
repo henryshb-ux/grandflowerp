@@ -1,0 +1,393 @@
+---
+- name: Create scripts directory
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}/scripts"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Create backup directory
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}/backup"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Create documents directory
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}/documents"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Deploy backup script
+  ansible.builtin.template:
+    src: backup.sh.j2
+    dest: "/opt/{{ app_name }}/scripts/backup.sh"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Deploy restore script
+  ansible.builtin.template:
+    src: restore.sh.j2
+    dest: "/opt/{{ app_name }}/scripts/restore.sh"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure backup cron job
+  ansible.builtin.cron:
+    name: "{{ app_name }} daily backup"
+    user: "{{ app_user }}"
+    hour: "{{ backup_cron_hour | default('2') }}"
+    minute: "{{ backup_cron_minute | default('0') }}"
+    job: "/opt/{{ app_name }}/scripts/backup.sh >> /var/log/{{ app_name }}/backup.log 2>&1"
+    state: "{{ 'present' if backup_cron_enabled | default(true) else 'absent' }}"
+
+- name: Configure weekly remote sync cron job
+  ansible.builtin.cron:
+    name: "{{ app_name }} weekly remote backup sync"
+    user: "{{ app_user }}"
+    weekday: "0"
+    hour: "{{ backup_remote_cron_hour | default('3') }}"
+    minute: "{{ backup_remote_cron_minute | default('0') }}"
+    job: "rsync -avz /opt/{{ app_name }}/backup/ {{ backup_remote_user }}@{{ backup_remote_host }}:{{ backup_remote_path }}/ >> /var/log/{{ app_name }}/backup.log 2>&1"
+    state: "{{ 'present' if backup_remote_enabled | default(false) else 'absent' }}"
+  when: backup_remote_enabled | default(false)
+
+- name: Create .pgpass file for system user (no home directory)
+  ansible.builtin.copy:
+    dest: "/opt/{{ app_name }}/.pgpass"
+    content: "localhost:5432:{{ db_name }}:{{ db_user }}:{{ db_password }}"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+
+- name: Set PGPASSFILE environment variable in backup script
+  ansible.builtin.lineinfile:
+    path: "/opt/{{ app_name }}/scripts/backup.sh"
+    insertafter: "^set -e"
+    line: "export PGPASSFILE=\"/opt/{{ app_name }}/.pgpass\""
+
+# Backup Configuration File
+- name: Deploy backup configuration file
+  ansible.builtin.template:
+    src: backup.conf.j2
+    dest: "/opt/{{ app_name }}/backup.conf"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+
+# Remote Backup to Backblaze B2
+- name: Validate B2 configuration
+  ansible.builtin.fail:
+    msg: |
+      ❌ Invalid Backblaze B2 configuration!
+      
+      The backup_b2_account_id must be your B2 Account ID (also called keyID),
+      not an email address.
+      
+      To find your B2 Account ID:
+      1. Log in to Backblaze B2: https://www.backblaze.com/b2/cloud-storage.html
+      2. Go to "App Keys" section
+      3. Your Account ID (keyID) is displayed at the top of the page
+         Format: 25 characters like "0035b35e2e1a0000000000001"
+      
+      Note: Account ID and Application Key ID are the SAME value.
+      
+      Current value: {{ backup_b2_account_id }}
+      Expected format: 25-character alphanumeric string
+  when:
+    - backup_b2_enabled | default(false)
+    - backup_b2_account_id is defined
+    - "'@' in backup_b2_account_id or backup_b2_account_id | length < 20"
+
+- name: Install rclone for cloud storage sync
+  ansible.builtin.apt:
+    name: rclone
+    state: present
+  when: backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
+
+- name: Generate backup encryption key
+  ansible.builtin.shell: |
+    if [ ! -f "/opt/{{ app_name }}/.backup-key" ]; then
+      openssl rand -base64 32 > "/opt/{{ app_name }}/.backup-key"
+      chmod 600 "/opt/{{ app_name }}/.backup-key"
+      chown {{ app_user }}:{{ app_user }} "/opt/{{ app_name }}/.backup-key"
+    fi
+  args:
+    creates: "/opt/{{ app_name }}/.backup-key"
+  when: backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
+
+- name: Create GPG home directory for system user
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}/.gnupg"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0700"
+  when: backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
+
+- name: Create rclone config directory
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}/.config/rclone"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0700"
+  when: backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
+
+- name: Deploy rclone configuration
+  ansible.builtin.template:
+    src: rclone.conf.j2
+    dest: "/opt/{{ app_name }}/.config/rclone/rclone.conf"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+  when: backup_b2_enabled | default(false) or backup_gdrive_enabled | default(false)
+
+- name: Deploy B2 backup script
+  ansible.builtin.template:
+    src: backup-b2.sh.j2
+    dest: "/opt/{{ app_name }}/scripts/backup-b2.sh"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+  when: backup_b2_enabled | default(false)
+
+- name: Configure daily B2 backup cron job
+  ansible.builtin.cron:
+    name: "{{ app_name }} daily B2 backup"
+    user: "{{ app_user }}"
+    hour: "{{ backup_b2_cron_hour | default('3') }}"
+    minute: "{{ backup_b2_cron_minute | default('0') }}"
+    job: "/opt/{{ app_name }}/scripts/backup-b2.sh"
+    state: "{{ 'present' if backup_b2_enabled | default(false) else 'absent' }}"
+
+# Remote Archive to Google Drive
+- name: Deploy Google Drive archive script
+  ansible.builtin.template:
+    src: backup-gdrive.sh.j2
+    dest: "/opt/{{ app_name }}/scripts/backup-gdrive.sh"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+  when: backup_gdrive_enabled | default(false)
+
+- name: Configure daily Google Drive backup cron job
+  ansible.builtin.cron:
+    name: "{{ app_name }} daily Google Drive backup"
+    user: "{{ app_user }}"
+    hour: "{{ backup_gdrive_cron_hour | default('4') }}"
+    minute: "{{ backup_gdrive_cron_minute | default('0') }}"
+    job: "/opt/{{ app_name }}/scripts/backup-gdrive.sh"
+    state: "{{ 'present' if backup_gdrive_enabled | default(false) else 'absent' }}"
+
+# Post-deployment verification
+- name: Run test local backup
+  ansible.builtin.command:
+    cmd: "/opt/{{ app_name }}/scripts/backup.sh"
+  become: true
+  become_user: "{{ app_user }}"
+  register: backup_result
+  changed_when: false
+
+- name: Verify local backup file exists
+  ansible.builtin.find:
+    paths: "/opt/{{ app_name }}/backup"
+    patterns: "*.tar.gz"
+  register: backup_files
+
+- name: Fail if no backup file created
+  ansible.builtin.fail:
+    msg: "Local backup verification failed - no backup file created"
+  when: backup_files.matched == 0
+
+- name: Test rclone B2 connection
+  ansible.builtin.command:
+    cmd: "rclone lsd b2:"
+  become: true
+  become_user: "{{ app_user }}"
+  environment:
+    RCLONE_CONFIG: "/opt/{{ app_name }}/.config/rclone/rclone.conf"
+  register: b2_connection_test
+  when: backup_b2_enabled | default(false)
+  changed_when: false
+  failed_when: false
+
+- name: Display B2 connection test result
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "B2 Connection Test:"
+      - "Return code: {{ b2_connection_test.rc }}"
+      - "Stdout: {{ b2_connection_test.stdout }}"
+      - "Stderr: {{ b2_connection_test.stderr }}"
+      - ""
+  when: backup_b2_enabled | default(false)
+
+- name: Run test B2 upload
+  ansible.builtin.command:
+    cmd: "/opt/{{ app_name }}/scripts/backup-b2.sh"
+  become: true
+  become_user: "{{ app_user }}"
+  register: b2_result
+  when: backup_b2_enabled | default(false)
+  changed_when: false
+
+- name: Verify B2 upload succeeded
+  ansible.builtin.command:
+    cmd: "rclone ls b2:{{ backup_b2_bucket }}/"
+  become: true
+  become_user: "{{ app_user }}"
+  environment:
+    RCLONE_CONFIG: "/opt/{{ app_name }}/.config/rclone/rclone.conf"
+  register: b2_files
+  when: backup_b2_enabled | default(false)
+  changed_when: false
+
+- name: Fail if B2 upload failed
+  ansible.builtin.fail:
+    msg: "B2 backup verification failed - no files in bucket"
+  when:
+    - backup_b2_enabled | default(false)
+    - b2_files.stdout | length == 0
+
+- name: Run test Google Drive upload
+  ansible.builtin.command:
+    cmd: "/opt/{{ app_name }}/scripts/backup-gdrive.sh"
+  become: true
+  become_user: "{{ app_user }}"
+  register: gdrive_result
+  when: backup_gdrive_enabled | default(false)
+  changed_when: false
+
+- name: Verify Google Drive upload succeeded
+  ansible.builtin.command:
+    cmd: "rclone ls gdrive:{{ backup_gdrive_folder | default('accounting-backup') }}/"
+  become: true
+  become_user: "{{ app_user }}"
+  environment:
+    RCLONE_CONFIG: "/opt/{{ app_name }}/.config/rclone/rclone.conf"
+  register: gdrive_files
+  when: backup_gdrive_enabled | default(false)
+  changed_when: false
+
+- name: Fail if Google Drive upload failed
+  ansible.builtin.fail:
+    msg: "Google Drive backup verification failed - no files in folder"
+  when:
+    - backup_gdrive_enabled | default(false)
+    - gdrive_files.stdout | length == 0
+
+- name: Display backup verification results
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "BACKUP VERIFICATION COMPLETE:"
+      - "  Local backup:    ✓ {{ backup_files.files[0].path | basename }}"
+      - "  B2 upload:       {{ '✓ Verified' if backup_b2_enabled | default(false) else '○ Disabled' }}"
+      - "  Google Drive:    {{ '✓ Verified' if backup_gdrive_enabled | default(false) else '○ Disabled' }}"
+      - ""
+
+# Telegram verification (if enabled)
+- name: Verify Telegram bot token
+  ansible.builtin.uri:
+    url: "https://api.telegram.org/bot{{ telegram_bot_token }}/getMe"
+    method: GET
+    return_content: yes
+  register: telegram_bot_info
+  when: telegram_bot_enabled | default(false)
+  failed_when: false
+
+- name: Send Telegram test message
+  ansible.builtin.uri:
+    url: "https://api.telegram.org/bot{{ telegram_bot_token }}/sendMessage"
+    method: POST
+    body_format: json
+    body:
+      chat_id: "{{ telegram_admin_chat_id }}"
+      text: |
+        ✅ *Deployment Verification*
+
+        Application: {{ app_name }}
+        Server: {{ app_domain }}
+        Time: {{ now(utc=false).isoformat() }}
+
+        Backup status:
+        • Local: ✓ Working
+        • B2: {{ '✓ Working' if backup_b2_enabled | default(false) else '○ Disabled' }}
+        • Google Drive: {{ '✓ Working' if backup_gdrive_enabled | default(false) else '○ Disabled' }}
+
+        Please reply with a photo to test receipt upload.
+      parse_mode: "Markdown"
+  register: telegram_send_result
+  when:
+    - telegram_bot_enabled | default(false)
+    - telegram_admin_chat_id is defined
+    - telegram_bot_info.status == 200
+  failed_when: false
+
+- name: Display Telegram verification results
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "TELEGRAM VERIFICATION:"
+      - "  Bot token:       {{ '✓ Valid (@' + telegram_bot_info.json.result.username + ')' if telegram_bot_info.status | default(0) == 200 else '✗ Invalid' }}"
+      - "  Test message:    {{ '✓ Sent to chat ' + telegram_admin_chat_id | string if telegram_send_result.status | default(0) == 200 else '✗ Failed or no chat ID' }}"
+      - ""
+      - "MANUAL VERIFICATION REQUIRED (after app JAR deployed):"
+      - "  1. Deploy the app JAR and restart the service"
+      - "  2. Register webhook: curl -X POST \"https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://{{ app_domain }}/api/telegram/webhook\""
+      - "  3. Open Telegram and send a photo to @{{ telegram_bot_username | default('YourBot') }}"
+      - "  4. Check the app: the receipt should appear in Transaksi > Dokumen"
+      - ""
+  when: telegram_bot_enabled | default(false)
+
+- name: Fail if Telegram bot token is invalid
+  ansible.builtin.fail:
+    msg: "Telegram bot token is invalid. Check telegram_bot_token in group_vars."
+  when:
+    - telegram_bot_enabled | default(false)
+    - telegram_bot_info.status | default(0) != 200
+
+# Google Cloud Vision verification (if enabled)
+- name: Check Google Cloud credentials file exists
+  ansible.builtin.stat:
+    path: "/opt/{{ app_name }}/gcp-credentials.json"
+  register: gcp_credentials_file
+  when: google_cloud_vision_enabled | default(false)
+
+- name: Fail if Google Cloud credentials file missing
+  ansible.builtin.fail:
+    msg: "Google Cloud credentials file not found at /opt/{{ app_name }}/gcp-credentials.json. Upload the service account JSON file."
+  when:
+    - google_cloud_vision_enabled | default(false)
+    - not gcp_credentials_file.stat.exists | default(false)
+
+- name: Validate Google Cloud credentials JSON
+  ansible.builtin.command:
+    cmd: "python3 -c \"import json; json.load(open('/opt/{{ app_name }}/gcp-credentials.json'))\""
+  register: gcp_json_valid
+  when:
+    - google_cloud_vision_enabled | default(false)
+    - gcp_credentials_file.stat.exists | default(false)
+  changed_when: false
+  failed_when: false
+
+- name: Display Google Cloud Vision verification results
+  ansible.builtin.debug:
+    msg:
+      - ""
+      - "GOOGLE CLOUD VISION VERIFICATION:"
+      - "  Credentials file: {{ '✓ Found' if gcp_credentials_file.stat.exists | default(false) else '✗ Missing' }}"
+      - "  JSON valid:       {{ '✓ Valid' if gcp_json_valid.rc | default(1) == 0 else '✗ Invalid' }}"
+      - ""
+      - "OCR will be used when uploading receipts via Telegram."
+      - "Test by sending a receipt photo after app is running."
+      - ""
+  when: google_cloud_vision_enabled | default(false)

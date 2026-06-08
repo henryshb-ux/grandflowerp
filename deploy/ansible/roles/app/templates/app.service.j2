@@ -1,0 +1,50 @@
+[Unit]
+Description={{ app_name }} Spring Boot Application
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User={{ app_user }}
+Group={{ app_user }}
+WorkingDirectory=/opt/{{ app_name }}
+
+# Load sensitive environment variables from secure file (mode 0600)
+EnvironmentFile=/opt/{{ app_name }}/env.conf
+
+ExecStart=/usr/bin/java \
+    -Xms{{ java_heap_min }} \
+    -Xmx{{ java_heap_max }} \
+    -XX:+UseSerialGC \
+    -XX:+DisableAttachMechanism \
+    -XX:+HeapDumpOnOutOfMemoryError \
+    -XX:HeapDumpPath=/var/log/{{ app_name }}/heapdump.hprof \
+    -Djava.security.egd=file:/dev/urandom \
+    -Dfile.encoding=UTF-8 \
+    -Duser.timezone=Asia/Jakarta \
+    -jar /opt/{{ app_name }}/{{ app_name }}.jar \
+    --spring.config.location=/opt/{{ app_name }}/application.properties
+
+# Security: Prevent core dumps that may contain sensitive data
+LimitCORE=0
+
+# Security: Restrict filesystem access
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/{{ app_name }} /var/log/{{ app_name }}
+PrivateTmp=true
+
+# Security: Restrict capabilities
+NoNewPrivileges=true
+CapabilityBoundingSet=
+
+SuccessExitStatus=143
+Restart=always
+RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{ app_name }}
+
+[Install]
+WantedBy=multi-user.target

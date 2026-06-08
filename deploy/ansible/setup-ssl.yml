@@ -1,0 +1,52 @@
+---
+- name: Setup SSL for Accounting Finance Application
+  hosts: accounting
+  become: yes
+
+  vars:
+    app_domain: balaka.artivisi.id
+    ssl_email: admin@artivisi.com
+    app_port: 10000
+    app_name: aplikasi-akunting
+
+  tasks:
+    - name: Install certbot and nginx plugin
+      ansible.builtin.apt:
+        name:
+          - certbot
+          - python3-certbot-nginx
+        state: present
+        update_cache: yes
+
+    - name: Check if certificate already exists
+      ansible.builtin.stat:
+        path: "/etc/letsencrypt/live/{{ app_domain }}/fullchain.pem"
+      register: cert_file
+
+    - name: Obtain SSL certificate (certonly - does not modify nginx config)
+      ansible.builtin.command:
+        cmd: >
+          certbot certonly --nginx -d {{ app_domain }}
+          --non-interactive --agree-tos
+          --email {{ ssl_email }}
+      when: not cert_file.stat.exists
+
+    - name: Update nginx configuration for SSL
+      ansible.builtin.template:
+        src: roles/nginx/templates/nginx-site-ssl.conf.j2
+        dest: "/etc/nginx/sites-available/{{ app_name }}"
+        mode: "0644"
+      notify: reload nginx
+
+    - name: Setup certbot auto-renewal cron
+      ansible.builtin.cron:
+        name: "Certbot renewal"
+        minute: "0"
+        hour: "3"
+        job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
+
+  handlers:
+    - name: reload nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded

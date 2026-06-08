@@ -1,0 +1,95 @@
+---
+- name: Create application user
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    system: yes
+    shell: /usr/sbin/nologin
+    create_home: no
+
+- name: Create application directory
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Create log directory
+  ansible.builtin.file:
+    path: "/var/log/{{ app_name }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Upload Google Cloud credentials (if enabled and file exists locally)
+  ansible.builtin.copy:
+    src: "{{ google_cloud_credentials_file }}"
+    dest: "/opt/{{ app_name }}/gcp-credentials.json"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+  when:
+    - google_cloud_vision_enabled | default(false)
+    - google_cloud_credentials_file is defined
+    - google_cloud_credentials_file | length > 0
+  notify: restart app
+
+- name: Create themes directory
+  ansible.builtin.file:
+    path: "/opt/{{ app_name }}/themes"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Upload theme files
+  ansible.builtin.copy:
+    src: "{{ app_theme_dir }}/"
+    dest: "/opt/{{ app_name }}/themes/"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0644"
+    directory_mode: "0755"
+  when:
+    - app_theme_dir is defined
+    - app_theme_dir | length > 0
+
+- name: Create application configuration
+  ansible.builtin.template:
+    src: application.properties.j2
+    dest: "/opt/{{ app_name }}/application.properties"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+  notify: restart app
+
+- name: Create secure environment file for secrets
+  ansible.builtin.template:
+    src: env.conf.j2
+    dest: "/opt/{{ app_name }}/env.conf"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0600"
+  notify: restart app
+
+- name: Create systemd service file
+  ansible.builtin.template:
+    src: app.service.j2
+    dest: "/etc/systemd/system/{{ app_name }}.service"
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart app
+
+- name: Enable application service
+  ansible.builtin.systemd:
+    name: "{{ app_name }}"
+    enabled: yes
+    daemon_reload: yes
+
+- name: Configure log rotation (2 year retention for audit compliance)
+  ansible.builtin.template:
+    src: logrotate.j2
+    dest: "/etc/logrotate.d/{{ app_name }}"
+    mode: "0644"

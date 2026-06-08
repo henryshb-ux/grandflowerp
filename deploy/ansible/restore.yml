@@ -1,0 +1,55 @@
+---
+# Restore playbook
+# Usage: ansible-playbook -i inventory.ini restore.yml -e "backup_file=/opt/accounting-finance/backup/accounting-finance_20251126_020000.tar.gz"
+#
+# WARNING: This will REPLACE all current data with the backup data!
+
+- name: Restore from Backup
+  hosts: accounting
+  become: yes
+
+  vars_prompt:
+    - name: confirm_restore
+      prompt: "This will REPLACE all current data with the backup. Type 'yes' to confirm"
+      private: no
+
+  pre_tasks:
+    - name: Validate confirmation
+      ansible.builtin.fail:
+        msg: "Restore cancelled by user"
+      when: confirm_restore != 'yes'
+
+    - name: Validate backup_file variable
+      ansible.builtin.fail:
+        msg: "backup_file variable is required. Use: -e 'backup_file=/path/to/backup.tar.gz'"
+      when: backup_file is not defined
+
+    - name: Check backup file exists
+      ansible.builtin.stat:
+        path: "{{ backup_file }}"
+      register: backup_stat
+
+    - name: Fail if backup file not found
+      ansible.builtin.fail:
+        msg: "Backup file not found: {{ backup_file }}"
+      when: not backup_stat.stat.exists
+
+  tasks:
+    - name: Run restore script
+      ansible.builtin.command:
+        cmd: "/opt/{{ app_name }}/scripts/restore.sh --force {{ backup_file }}"
+      register: restore_result
+      changed_when: true
+
+    - name: Display restore result
+      ansible.builtin.debug:
+        msg: "{{ restore_result.stdout_lines }}"
+
+    - name: Check application status
+      ansible.builtin.systemd:
+        name: "{{ app_name }}"
+      register: app_status
+
+    - name: Show application status
+      ansible.builtin.debug:
+        msg: "Application status: {{ app_status.status.ActiveState }}"

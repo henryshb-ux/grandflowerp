@@ -1,0 +1,170 @@
+# Application Configuration
+app_name: accounting-finance
+app_user: accounting
+app_port: 10000
+
+# Domain
+app_domain: akunting.example.com
+
+# Database Configuration
+postgresql_version: "18"
+db_name: accountingdb
+db_user: accounting
+db_password: "CHANGE_THIS_DB_PASSWORD"
+# SSL mode: require (encrypted), verify-ca, verify-full (strictest)
+# For localhost PostgreSQL, 'require' is sufficient
+db_ssl_mode: require
+
+# PostgreSQL Performance Tuning
+# VPS spec: s-1vcpu-2gb (1 vCPU, 2GB RAM)
+# Memory budget: JVM ~700MB, PostgreSQL ~150MB, OS/Nginx ~1150MB
+pg_server_ram_gb: 2
+
+# Connection settings (match HikariCP pool size)
+pg_max_connections: 20
+
+# Memory settings - conservative for shared 2GB server
+# Reduced from 128MB to allow more headroom for OS and JVM
+pg_shared_buffers: "96MB"
+pg_effective_cache_size: "256MB"
+pg_work_mem: "4MB"
+pg_maintenance_work_mem: "48MB"
+
+# Storage type affects query planner (DigitalOcean uses SSD)
+pg_storage_type: "ssd"
+
+# WAL settings
+pg_wal_buffers: "16MB"
+pg_checkpoint_completion_target: 0.9
+pg_min_wal_size: "256MB"
+pg_max_wal_size: "1GB"
+
+# Autovacuum tuning for OLTP
+pg_autovacuum_max_workers: 2
+pg_autovacuum_naptime: "1min"
+pg_autovacuum_vacuum_scale_factor: 0.05
+pg_autovacuum_analyze_scale_factor: 0.025
+
+# Logging for diagnostics
+pg_log_min_duration_statement: 1000
+pg_log_checkpoints: "on"
+pg_log_connections: "on"
+pg_log_disconnections: "on"
+pg_log_lock_waits: "on"
+pg_log_temp_files: 0
+
+# Admin User Configuration
+# SECURITY: Do NOT use common usernames like 'admin', 'administrator', 'root'
+# Use a unique username to prevent enumeration attacks
+admin_username: "CHANGE_THIS_USERNAME"
+admin_password_plain: "CHANGE_THIS_ADMIN_PASSWORD"
+admin_full_name: "System Administrator"
+admin_email: "admin@example.com"
+
+# Java Configuration
+java_version: "25"
+java_heap_min: "512m"
+java_heap_max: "1024m"
+
+# SSL Configuration
+ssl_enabled: true
+ssl_email: "admin@example.com"
+
+# Nginx Performance Tuning
+nginx_worker_processes: "auto"
+nginx_worker_connections: 1024
+
+# Keepalive connections
+nginx_keepalive_timeout: 65
+nginx_keepalive_requests: 1000
+
+# Proxy buffer tuning
+nginx_proxy_buffer_size: "16k"
+nginx_proxy_buffers: "4 32k"
+nginx_proxy_busy_buffers_size: "64k"
+
+# Client body size (for file uploads)
+nginx_client_max_body_size: "20M"
+nginx_client_body_buffer_size: "128k"
+
+# Rate limiting (requests per second per IP)
+nginx_rate_limit: "10r/s"
+nginx_rate_limit_burst: 20
+
+# Gzip compression
+nginx_gzip_enabled: true
+nginx_gzip_comp_level: 5
+nginx_gzip_min_length: 1024
+
+# Document Storage Configuration (optional)
+# document_max_file_size: 10485760  # 10MB
+# document_allowed_types: "image/jpeg,image/png,image/gif,application/pdf"
+
+# Document Encryption Key (AES-256-GCM)
+# Generate with: openssl rand -base64 32
+# IMPORTANT: This key encrypts uploaded documents. If lost, documents cannot be recovered.
+# Store this key securely (e.g., password manager, vault)
+# document_encryption_key: "BASE64_ENCODED_32_BYTE_KEY"
+
+# Telegram Bot Configuration (optional)
+# IMPORTANT: If telegram_bot_enabled is true, telegram_webhook_secret is REQUIRED
+# The application will fail to start without it for security reasons
+telegram_bot_enabled: false
+# telegram_bot_token: "your-bot-token"
+# telegram_bot_username: "YourBotUsername"
+# telegram_webhook_url: "https://yourdomain.com/api/telegram/webhook"
+# telegram_webhook_secret: "your-webhook-secret"  # REQUIRED when telegram_bot_enabled=true
+# telegram_admin_chat_id: "123456789"  # Your Telegram user ID for deployment notifications
+
+# Google Cloud Vision Configuration (optional - for receipt OCR)
+# To enable:
+# 1. Create a GCP project and enable Vision API
+# 2. Create a service account with Vision API permissions
+# 3. Download the JSON key file
+# 4. Save it locally (e.g., ~/gcp-credentials/accounting-app-credentials.json)
+# 5. Set google_cloud_credentials_file to your local file path
+# 6. Ansible will automatically upload it to the server
+google_cloud_vision_enabled: false
+# google_cloud_credentials_file: "~/gcp-credentials/accounting-app-credentials.json"
+
+# Backup Configuration
+backup_cron_enabled: true
+backup_cron_hour: "2"
+backup_cron_minute: "0"
+backup_retention_count: 7
+
+# Remote Backup via rsync (optional)
+backup_remote_enabled: false
+# backup_remote_user: "backup"
+# backup_remote_host: "backup.example.com"
+# backup_remote_path: "/backups/accounting"
+# backup_remote_cron_hour: "3"
+# backup_remote_cron_minute: "0"
+
+# Backblaze B2 Backup (optional - weekly encrypted backup)
+# To configure B2:
+# 1. Sign up at https://www.backblaze.com/b2/cloud-storage.html
+# 2. Create a bucket (e.g., "my-company-backup")
+# 3. Go to "App Keys" section in B2 dashboard
+# 4. Find your Account ID at the top (also called keyID - 25 chars like "0035b35e2e1a0000000000001")
+# 5. Create a new Application Key and copy the applicationKey (long secret shown only once)
+# Note: Account ID and Application Key ID (keyID) are the same value
+backup_b2_enabled: false
+# backup_b2_account_id: "0035b35e2e1a0000000000001"  # Your B2 Account ID / keyID (25 characters)
+# backup_b2_application_key: "K003xxxxxxxxxxxxxxxxxxxxxxxxxx"  # Your B2 applicationKey (secret)
+# backup_b2_bucket: "your-b2-bucket-name"
+# backup_b2_retention_weeks: 4
+# backup_b2_cron_hour: "3"
+# backup_b2_cron_minute: "0"
+
+# Google Drive Archive (optional - monthly encrypted archive)
+backup_gdrive_enabled: false
+# backup_gdrive_token: '{"access_token":"...","token_type":"Bearer","refresh_token":"...","expiry":"..."}'
+# backup_gdrive_folder: "accounting-backup"
+# backup_gdrive_retention_months: 12
+# backup_gdrive_cron_hour: "4"
+# backup_gdrive_cron_minute: "0"
+
+# Backup Notification (optional - webhook URL)
+backup_notification_enabled: false
+# backup_notification_url: "https://hooks.example.com/backup"

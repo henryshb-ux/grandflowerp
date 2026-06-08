@@ -1,0 +1,122 @@
+---
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Create snippets directory
+  ansible.builtin.file:
+    path: /etc/nginx/snippets
+    state: directory
+    mode: '0755'
+
+- name: Deploy optimized nginx.conf
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: '0644'
+    backup: yes
+  notify: Reload nginx
+
+- name: Deploy proxy parameters snippet
+  ansible.builtin.template:
+    src: proxy-params.conf.j2
+    dest: /etc/nginx/snippets/proxy-params.conf
+    mode: '0644'
+  notify: Reload nginx
+
+- name: Remove default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+# Always deploy HTTP config first (needed for certbot webroot validation)
+- name: Create nginx site configuration (HTTP for cert provisioning)
+  ansible.builtin.template:
+    src: nginx-site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}"
+    mode: "0644"
+  notify: Reload nginx
+  when: ssl_enabled | default(false)
+
+- name: Create nginx site configuration (HTTP only)
+  ansible.builtin.template:
+    src: nginx-site.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}"
+    mode: "0644"
+  notify: Reload nginx
+  when: not (ssl_enabled | default(false))
+
+- name: Enable nginx site
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ app_name }}"
+    dest: "/etc/nginx/sites-enabled/{{ app_name }}"
+    state: link
+  notify: Reload nginx
+
+- name: Test nginx configuration
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Ensure nginx is started and enabled
+  ansible.builtin.systemd:
+    name: nginx
+    state: started
+    enabled: yes
+
+# Flush handlers to ensure nginx is running with HTTP config before certbot
+- name: Flush handlers (ensure nginx running for certbot)
+  ansible.builtin.meta: flush_handlers
+  when: ssl_enabled | default(false)
+
+- name: Install certbot (if SSL enabled)
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+  when: ssl_enabled | default(false)
+
+# Use certonly to just get cert, don't modify nginx config
+- name: Obtain SSL certificate
+  ansible.builtin.command:
+    cmd: >
+      certbot certonly --nginx -d {{ app_domain }}
+      --non-interactive --agree-tos
+      --email {{ ssl_email }}
+    creates: "/etc/letsencrypt/live/{{ app_domain }}/fullchain.pem"
+  when: ssl_enabled | default(false)
+
+# Now deploy SSL config after cert is obtained
+- name: Create nginx site configuration (SSL)
+  ansible.builtin.template:
+    src: nginx-site-ssl.conf.j2
+    dest: "/etc/nginx/sites-available/{{ app_name }}"
+    mode: "0644"
+  notify: Reload nginx
+  when: ssl_enabled | default(false)
+
+- name: Test nginx configuration after SSL setup
+  ansible.builtin.command: nginx -t
+  changed_when: false
+  when: ssl_enabled | default(false)
+
+- name: Setup certbot auto-renewal cron
+  ansible.builtin.cron:
+    name: "Renew Let's Encrypt certificates"
+    minute: "0"
+    hour: "3"
+    job: "certbot renew --quiet --post-hook 'systemctl reload nginx'"
+  when: ssl_enabled | default(false)
+
+# Display configuration summary
+- name: Display nginx configuration summary
+  ansible.builtin.debug:
+    msg: |
+      Nginx configured:
+      - Worker processes: {{ nginx_worker_processes }}
+      - Worker connections: {{ nginx_worker_connections }}
+      - Rate limit: {{ nginx_rate_limit }} (burst: {{ nginx_rate_limit_burst }})
+      - Gzip: {{ nginx_gzip_enabled }}
+      - SSL: {{ ssl_enabled | default(false) }}

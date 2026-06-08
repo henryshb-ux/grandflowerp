@@ -1,0 +1,109 @@
+---
+# Add official PostgreSQL APT repository for latest versions
+- name: Install prerequisites for PostgreSQL repository
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - gnupg
+    state: present
+
+- name: Create keyrings directory
+  ansible.builtin.file:
+    path: /usr/share/postgresql-common/pgdg
+    state: directory
+    mode: '0755'
+
+- name: Download PostgreSQL repository signing key
+  ansible.builtin.shell: |
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+  args:
+    creates: /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
+
+- name: Add PostgreSQL APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] https://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+    state: present
+    filename: pgdg
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install PostgreSQL {{ postgresql_version }}
+  ansible.builtin.apt:
+    name:
+      - postgresql-{{ postgresql_version }}
+      - postgresql-contrib-{{ postgresql_version }}
+    state: present
+
+- name: Ensure PostgreSQL is started and enabled
+  ansible.builtin.systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+
+# Deploy optimized PostgreSQL configuration
+- name: Deploy optimized postgresql.conf
+  ansible.builtin.template:
+    src: postgresql.conf.j2
+    dest: /etc/postgresql/{{ postgresql_version }}/main/postgresql.conf
+    owner: postgres
+    group: postgres
+    mode: '0644'
+    backup: yes
+  notify: Restart PostgreSQL
+
+- name: Configure pg_hba.conf for local SSL connections
+  ansible.builtin.lineinfile:
+    path: /etc/postgresql/{{ postgresql_version }}/main/pg_hba.conf
+    regexp: "^local\\s+all\\s+all"
+    line: "local   all             all                                     scram-sha-256"
+    state: present
+  notify: Restart PostgreSQL
+
+- name: Flush handlers to apply config changes
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for PostgreSQL to be ready
+  ansible.builtin.wait_for:
+    port: 5432
+    timeout: 30
+
+- name: Create database user
+  community.postgresql.postgresql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    state: present
+  become_user: postgres
+
+- name: Create database
+  community.postgresql.postgresql_db:
+    name: "{{ db_name }}"
+    owner: "{{ db_user }}"
+    state: present
+  become_user: postgres
+
+- name: Grant all privileges on database
+  community.postgresql.postgresql_privs:
+    db: "{{ db_name }}"
+    privs: ALL
+    type: database
+    role: "{{ db_user }}"
+    state: present
+  become_user: postgres
+
+# Verify configuration was applied
+- name: Verify PostgreSQL shared_buffers setting
+  ansible.builtin.shell: |
+    sudo -u postgres psql -t -c "SHOW shared_buffers;"
+  register: pg_shared_buffers_check
+  changed_when: false
+
+- name: Display current PostgreSQL memory settings
+  ansible.builtin.debug:
+    msg: |
+      PostgreSQL {{ postgresql_version }} configured:
+      - shared_buffers: {{ pg_shared_buffers_check.stdout | trim }}
+      - max_connections: {{ pg_max_connections }}
+      - work_mem: {{ pg_work_mem }}

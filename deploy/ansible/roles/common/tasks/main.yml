@@ -1,0 +1,73 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - acl
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - ufw
+      - python3-psycopg2
+      - python3-bcrypt
+    state: present
+
+- name: Ensure id_ID.UTF-8 locale exists
+  # PostgreSQL is configured with lc_monetary/lc_numeric/lc_time = id_ID.UTF-8
+  # (roles/postgresql/templates/postgresql.conf.j2); it refuses to start if the
+  # locale is missing. Bare images (e.g. Biznet) ship without it. 'acl' above is
+  # required for Ansible become_user (postgres) on hosts lacking setfacl.
+  community.general.locale_gen:
+    name: id_ID.UTF-8
+    state: present
+
+- name: Add Azul Zulu repository key
+  ansible.builtin.get_url:
+    url: https://repos.azul.com/azul-repo.key
+    dest: /usr/share/keyrings/azul.asc
+    mode: "0644"
+
+- name: Add Azul Zulu repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/azul.asc] https://repos.azul.com/zulu/deb stable main"
+    state: present
+    filename: zulu
+
+- name: Install Java {{ java_version }}
+  ansible.builtin.apt:
+    name: "zulu{{ java_version }}-jdk"
+    state: present
+    update_cache: yes
+
+- name: Configure UFW - allow SSH
+  community.general.ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Configure UFW - allow HTTP
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+
+- name: Configure UFW - allow HTTPS
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+    policy: deny
+
+- name: Set timezone to Asia/Jakarta
+  community.general.timezone:
+    name: Asia/Jakarta
