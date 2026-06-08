@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+<div th:fragment="widget" class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-semibold text-gray-800 text-sm">📤 Hutang Supplier (AP) & PO</h3>
+        <a th:href="@{/purchase-orders}" class="text-xs text-primary-600 hover:underline">Lihat PO →</a>
+    </div>
+    <div class="p-5 space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 bg-blue-50 rounded-lg">
+                <p class="text-xs text-gray-500 uppercase">PO Outstanding</p>
+                <p class="text-lg font-bold text-blue-700 mt-0.5" th:text="${#numbers.formatCurrency(ap.poOutstandingValue())}">Rp 0</p>
+                <p class="text-xs text-gray-400" th:text="${ap.poOutstandingCount()} + ' PO belum diterima'"></p>
+            </div>
+            <div class="p-3 bg-red-50 rounded-lg">
+                <p class="text-xs text-gray-500 uppercase">Bill Belum Dibayar</p>
+                <p class="text-lg font-bold text-red-600 mt-0.5" th:text="${#numbers.formatCurrency(ap.billOutstanding())}">Rp 0</p>
+            </div>
+        </div>
+        <div th:if="${ap.billDueSoon().compareTo(T(java.math.BigDecimal).ZERO) > 0}"
+             class="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <span class="text-yellow-500 text-lg flex-shrink-0">⚠</span>
+            <div>
+                <p class="text-sm font-medium text-yellow-800">Tagihan Jatuh Tempo 7 Hari</p>
+                <p class="text-sm font-bold text-yellow-700 mt-0.5" th:text="${#numbers.formatCurrency(ap.billDueSoon())}"></p>
+                <a th:href="@{/bills}" class="text-xs text-yellow-600 hover:underline">Bayar sekarang →</a>
+            </div>
+        </div>
+        <div class="flex gap-2 pt-1">
+            <a th:href="@{/purchase-orders(status=CONFIRMED)}" class="flex-1 text-center px-3 py-1.5 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">PO Dikonfirmasi</a>
+            <a th:href="@{/goods-receipts(status=DRAFT)}" class="flex-1 text-center px-3 py-1.5 border border-gray-200 rounded text-xs text-gray-600 hover:bg-gray-50">GR Menunggu</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head><title>formula help Fragment</title></head>
+<body>
+    <!-- Formula Help Panel - Thymeleaf fragment for formula assistance -->
+    <div th:fragment="formula-help" x-data="formulaHelp" class="mt-4">
+        <button @click="toggle" type="button"
+                data-testid="btn-formula-help-toggle"
+                class="flex items-center text-sm text-primary-600 hover:text-primary-800 transition-colors">
+            <svg class="w-4 h-4 mr-2" :class="{ 'rotate-90': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+            Bantuan Formula
+        </button>
+
+        <div :class="{ 'hidden': !open }" data-testid="formula-help-content" class="mt-3 bg-blue-50 rounded-lg border border-blue-200 overflow-hidden">
+            <!-- Tab Navigation -->
+            <div class="flex border-b border-blue-200 bg-blue-100">
+                <button @click="setTabTry" type="button"
+                        :class="isTabTry ? 'bg-blue-50 text-blue-800 border-b-2 border-blue-600' : 'text-blue-600 hover:bg-blue-50'"
+                        class="px-4 py-2 text-sm font-medium transition-colors">
+                    Coba Formula
+                </button>
+                <button @click="setTabSyntax" type="button"
+                        :class="isTabSyntax ? 'bg-blue-50 text-blue-800 border-b-2 border-blue-600' : 'text-blue-600 hover:bg-blue-50'"
+                        class="px-4 py-2 text-sm font-medium transition-colors">
+                    Sintaks
+                </button>
+                <button @click="setTabExamples" type="button"
+                        :class="isTabExamples ? 'bg-blue-50 text-blue-800 border-b-2 border-blue-600' : 'text-blue-600 hover:bg-blue-50'"
+                        class="px-4 py-2 text-sm font-medium transition-colors">
+                    Contoh Skenario
+                </button>
+            </div>
+
+            <!-- Try Formula Tab -->
+            <div :class="{ 'hidden': !isTabTry }" class="p-4">
+                <h4 class="text-sm font-semibold text-blue-800 mb-3">Coba Formula</h4>
+                <p class="text-xs text-blue-700 mb-4">Masukkan formula dan jumlah untuk melihat hasil perhitungan.</p>
+
+                <div class="space-y-4">
+                    <!-- Formula Input -->
+                    <div>
+                        <label for="tryFormula" class="block text-xs font-medium text-blue-700 mb-1">Formula</label>
+                        <input type="text" id="tryFormula" x-model="tryFormula"
+                               @input="debouncedPreview"
+                               placeholder="amount * 0.11"
+                               class="w-full px-3 py-2 text-sm font-mono border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    </div>
+
+                    <!-- Amount Input -->
+                    <div>
+                        <label for="tryAmount" class="block text-xs font-medium text-blue-700 mb-1">Jumlah (amount)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">Rp</span>
+                            <input type="text" id="tryAmount" x-model="tryAmount"
+                                   @input="handleAmountInput"
+                                   placeholder="10.000.000"
+                                   class="w-full pl-10 pr-3 py-2 text-sm font-mono border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-right">
+                        </div>
+                    </div>
+
+                    <!-- Result -->
+                    <div class="p-4 bg-white rounded-lg border border-blue-200">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">Hasil:</span>
+                            <div class="text-right">
+                                <template x-if="tryLoading">
+                                    <span class="text-sm text-gray-400">Menghitung...</span>
+                                </template>
+                                <template x-if="!tryLoading && tryError">
+                                    <span class="text-sm text-red-600" x-text="tryError"></span>
+                                </template>
+                                <template x-if="!tryLoading && !tryError && tryResult">
+                                    <span class="text-lg font-bold text-primary-700">Rp <span x-text="tryResult"></span></span>
+                                </template>
+                                <template x-if="!tryLoading && !tryError && !tryResult">
+                                    <span class="text-sm text-gray-400">-</span>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Examples -->
+                    <div class="pt-2 border-t border-blue-200">
+                        <p class="text-xs text-blue-700 mb-2">Contoh cepat (klik untuk mencoba):</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" @click="setFormulaAmount"
+                                    class="px-2 py-1 text-xs font-mono bg-white border border-blue-200 rounded hover:bg-blue-100 transition-colors">
+                                amount
+                            </button>
+                            <button type="button" @click="setFormulaPpn"
+                                    class="px-2 py-1 text-xs font-mono bg-white border border-blue-200 rounded hover:bg-blue-100 transition-colors">
+                                amount * 0.11
+                            </button>
+                            <button type="button" @click="setFormulaGrossWithPpn"
+                                    class="px-2 py-1 text-xs font-mono bg-white border border-blue-200 rounded hover:bg-blue-100 transition-colors">
+                                amount * 1.11
+                            </button>
+                            <button type="button" @click="setFormulaNetPpnPph23"
+                                    class="px-2 py-1 text-xs font-mono bg-white border border-blue-200 rounded hover:bg-blue-100 transition-colors">
+                                amount * 1.09
+                            </button>
+                            <button type="button" @click="setFormulaPph23"
+                                    class="px-2 py-1 text-xs font-mono bg-white border border-blue-200 rounded hover:bg-blue-100 transition-colors">
+                                PPh 23 conditional
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Syntax Tab -->
+            <div :class="{ 'hidden': !isTabSyntax }" class="p-4">
+                <h4 class="text-sm font-semibold text-blue-800 mb-3">Referensi Sintaks Formula</h4>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-blue-200">
+                                <th class="text-left py-2 pr-4 text-blue-700">Elemen</th>
+                                <th class="text-left py-2 pr-4 text-blue-700">Contoh</th>
+                                <th class="text-left py-2 text-blue-700">Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-blue-800">
+                            <tr class="border-b border-blue-100">
+                                <td class="py-2 pr-4 font-medium">Variable</td>
+                                <td class="py-2 pr-4 font-mono bg-white px-2 rounded">amount</td>
+                                <td class="py-2">Nilai transaksi yang diinput user</td>
+                            </tr>
+                            <tr class="border-b border-blue-100">
+                                <td class="py-2 pr-4 font-medium">Perkalian</td>
+                                <td class="py-2 pr-4 font-mono bg-white px-2 rounded">amount * 0.11</td>
+                                <td class="py-2">Hitung persentase (11%)</td>
+                            </tr>
+                            <tr class="border-b border-blue-100">
+                                <td class="py-2 pr-4 font-medium">Pembagian</td>
+                                <td class="py-2 pr-4 font-mono bg-white px-2 rounded">amount / 3</td>
+                                <td class="py-2">Bagi rata ke 3 pos</td>
+                            </tr>
+                            <tr class="border-b border-blue-100">
+                                <td class="py-2 pr-4 font-medium">Pengurangan</td>
+                                <td class="py-2 pr-4 font-mono bg-white px-2 rounded">amount - 320000</td>
+                                <td class="py-2">Kurangi nilai tetap</td>
+                            </tr>
+                            <tr class="border-b border-blue-100">
+                                <td class="py-2 pr-4 font-medium">Kondisional</td>
+                                <td class="py-2 pr-4 font-mono bg-white px-2 rounded text-[10px]">amount > 2000000 ? amount * 0.02 : 0</td>
+                                <td class="py-2">Jika kondisi terpenuhi</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 pr-4 font-medium">Konstanta</td>
+                                <td class="py-2 pr-4 font-mono bg-white px-2 rounded">320000</td>
+                                <td class="py-2">Nilai tetap</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 p-3 bg-amber-50 rounded border border-amber-200">
+                    <p class="text-xs text-amber-800">
+                        <span class="font-semibold">Catatan:</span> Gunakan format desimal untuk persentase.
+                        Contoh: 11% ditulis <code class="bg-white px-1 rounded">0.11</code>, bukan <code class="bg-white px-1 rounded">11%</code>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Examples Tab -->
+            <div :class="{ 'hidden': !isTabExamples }" class="p-4 space-y-4">
+                <h4 class="text-sm font-semibold text-blue-800 mb-3">Contoh Skenario</h4>
+
+                <!-- Scenario 1: Simple Sale -->
+                <div class="bg-white rounded-lg p-3 border border-blue-100">
+                    <h5 class="text-xs font-semibold text-gray-800 mb-2">1. Penjualan Tunai Sederhana</h5>
+                    <p class="text-xs text-gray-600 mb-2">Jual jasa Rp 10.000.000, terima tunai</p>
+                    <div class="bg-gray-50 rounded p-2 font-mono text-xs">
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-green-700">Debit - Kas/Bank</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-red-700">Kredit - Pendapatan</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scenario 2: Sale with PPN (DPP Nilai Lain PMK 131/2024) -->
+                <div class="bg-white rounded-lg p-3 border border-blue-100">
+                    <h5 class="text-xs font-semibold text-gray-800 mb-2">2. Pendapatan Jasa dengan PPN 11%</h5>
+                    <p class="text-xs text-gray-600 mb-2">Jasa Rp 10.000.000 (Harga Jual, sebelum PPN)</p>
+                    <div class="text-xs text-gray-600 mb-2 bg-yellow-50 p-2 rounded">
+                        <strong>Perhitungan (PMK 131/2024):</strong><br/>
+                        PPN = Harga Jual × 11% = Rp 1.100.000<br/>
+                        Total diterima = 10.000.000 + 1.100.000 = Rp 11.100.000
+                    </div>
+                    <div class="bg-gray-50 rounded p-2 font-mono text-xs space-y-1">
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-green-700">Debit - Bank</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount * 1.11</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-red-700">Kredit - Pendapatan</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-red-700">Kredit - PPN Keluaran</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount * 0.11</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scenario 3: Purchase with PPN -->
+                <div class="bg-white rounded-lg p-3 border border-blue-100">
+                    <h5 class="text-xs font-semibold text-gray-800 mb-2">3. Pembelian dengan PPN 11%</h5>
+                    <p class="text-xs text-gray-600 mb-2">Beli perlengkapan Rp 5.000.000 (Harga Jual, sebelum PPN)</p>
+                    <div class="text-xs text-gray-600 mb-2 bg-yellow-50 p-2 rounded">
+                        <strong>Perhitungan:</strong><br/>
+                        PPN = 5.000.000 × 11% = Rp 550.000<br/>
+                        Total bayar = 5.000.000 + 550.000 = Rp 5.550.000
+                    </div>
+                    <div class="bg-gray-50 rounded p-2 font-mono text-xs space-y-1">
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-green-700">Debit - Perlengkapan</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-green-700">Debit - PPN Masukan</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount * 0.11</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-red-700">Kredit - Kas/Bank</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount * 1.11</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scenario 4: PPh 23 -->
+                <div class="bg-white rounded-lg p-3 border border-blue-100">
+                    <h5 class="text-xs font-semibold text-gray-800 mb-2">4. PPh 23 Jasa (2% jika &gt; Rp 2.000.000)</h5>
+                    <p class="text-xs text-gray-600 mb-2">Bayar jasa konsultan Rp 5.000.000</p>
+                    <div class="text-xs text-gray-600 mb-2 bg-yellow-50 p-2 rounded">
+                        <strong>Perhitungan:</strong><br/>
+                        PPh 23 = 5.000.000 * 0.02 = Rp 100.000<br/>
+                        Dibayar = 5.000.000 - 100.000 = Rp 4.900.000
+                    </div>
+                    <div class="bg-gray-50 rounded p-2 font-mono text-[10px] space-y-1">
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-green-700">Debit - Beban Jasa</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-red-700">Kredit - Kas/Bank</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount - (amount &gt; 2000000 ? amount * 0.02 : 0)</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-red-700">Kredit - Hutang PPh 23</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount &gt; 2000000 ? amount * 0.02 : 0</span>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-2 italic">
+                        * Jika amount &le; 2.000.000, PPh 23 = 0 (tidak dipotong)
+                    </p>
+                </div>
+
+                <!-- Scenario 5: Fixed Deduction -->
+                <div class="bg-white rounded-lg p-3 border border-blue-100">
+                    <h5 class="text-xs font-semibold text-gray-800 mb-2">5. Gaji dengan Potongan Tetap</h5>
+                    <p class="text-xs text-gray-600 mb-2">Gaji Rp 8.000.000, potongan BPJS Rp 320.000</p>
+                    <div class="bg-gray-50 rounded p-2 font-mono text-xs space-y-1">
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-green-700">Debit - Beban Gaji</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-red-700">Kredit - Kas/Bank</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">amount - 320000</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="text-red-700">Kredit - Hutang BPJS</span>
+                            <span class="text-gray-500">:</span>
+                            <span class="font-semibold">320000</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:fragment="formula-help-script" th:attr="nonce=${cspNonce}">
+        function formulaHelp() {
+            return {
+                open: false,
+                activeTab: 'try',
+                tryFormula: 'amount',
+                tryAmount: '10.000.000',
+                tryResult: null,
+                tryError: null,
+                tryLoading: false,
+                debounceTimer: null,
+
+                // CSP-compatible methods (no inline expressions)
+                toggle() {
+                    this.open = !this.open
+                },
+
+                // Tab getters for :class bindings
+                get isTabTry() {
+                    return this.activeTab === 'try'
+                },
+                get isTabSyntax() {
+                    return this.activeTab === 'syntax'
+                },
+                get isTabExamples() {
+                    return this.activeTab === 'examples'
+                },
+
+                // Tab setters for @click handlers
+                setTabTry() {
+                    this.activeTab = 'try'
+                },
+                setTabSyntax() {
+                    this.activeTab = 'syntax'
+                },
+                setTabExamples() {
+                    this.activeTab = 'examples'
+                },
+
+                // Formula preset methods
+                setFormulaAmount() {
+                    this.tryFormula = 'amount'
+                    this.debouncedPreview()
+                },
+                setFormulaPpn() {
+                    this.tryFormula = 'amount * 0.11'
+                    this.debouncedPreview()
+                },
+                setFormulaGrossWithPpn() {
+                    this.tryFormula = 'amount * 1.11'
+                    this.debouncedPreview()
+                },
+                setFormulaNetPpnPph23() {
+                    this.tryFormula = 'amount * 1.09'
+                    this.debouncedPreview()
+                },
+                setFormulaPph23() {
+                    this.tryFormula = 'amount > 2000000 ? amount * 0.02 : 0'
+                    this.debouncedPreview()
+                },
+
+                // Amount input handler
+                handleAmountInput() {
+                    this.formatAmountInput()
+                    this.debouncedPreview()
+                },
+
+                formatAmountInput() {
+                    // Remove non-digits
+                    let value = this.tryAmount.replaceAll(/\D/g, '');
+                    // Format with dots
+                    this.tryAmount = value.replaceAll(/\B(?=(\d{3})+(?!\d))/g, '.');
+                },
+
+                parseAmount() {
+                    // Remove dots and convert to number
+                    return Number.parseInt(this.tryAmount.replaceAll('.', ''), 10) || 0;
+                },
+
+                debouncedPreview() {
+                    if (this.debounceTimer) {
+                        clearTimeout(this.debounceTimer);
+                    }
+                    this.debounceTimer = setTimeout(() => {
+                        this.preview();
+                    }, 300);
+                },
+
+                async preview() {
+                    if (!this.tryFormula || this.parseAmount() === 0) {
+                        this.tryResult = null;
+                        this.tryError = null;
+                        return;
+                    }
+
+                    this.tryLoading = true;
+                    this.tryError = null;
+
+                    try {
+                        const response = await fetch('/templates/api/formula/preview', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                formula: this.tryFormula,
+                                amount: this.parseAmount()
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.valid) {
+                            this.tryResult = data.formattedResult;
+                            this.tryError = null;
+                        } else {
+                            this.tryResult = null;
+                            this.tryError = data.errors.join(', ');
+                        }
+                    } catch (error) {
+                        this.tryError = error.message || 'Gagal menghubungi server';
+                        this.tryResult = null;
+                    } finally {
+                        this.tryLoading = false;
+                    }
+                },
+
+                init() {
+                    // Initial preview on load
+                    this.preview();
+                }
+            };
+        }
+
+        // Register the component for CSP compatibility
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('formulaHelp', formulaHelp);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Penyesuaian Persediaan', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Penyesuaian Persediaan</title>
+</head>
+<body>
+    <h1 id="page-title">Penyesuaian Persediaan</h1>
+
+    <section class="max-w-2xl">
+        <!-- Error Message -->
+        <div th:if="${error}" class="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-center gap-2 text-red-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span th:text="${error}">Error message</span>
+            </div>
+        </div>
+
+        <form th:action="@{/inventory/adjustment}" th:object="${form}" method="post" class="bg-white rounded-lg shadow p-6 space-y-6">
+            <!-- Adjustment Type -->
+            <fieldset>
+                <legend class="block text-sm font-medium text-gray-700 mb-2">
+                    Tipe Penyesuaian <span class="text-red-500">*</span>
+                </legend>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio"
+                               th:field="*{inbound}"
+                               value="true"
+                               class="text-primary-600 focus:ring-primary-500">
+                        <span class="text-green-600 font-medium">Penambahan</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio"
+                               th:field="*{inbound}"
+                               value="false"
+                               class="text-primary-600 focus:ring-primary-500">
+                        <span class="text-red-600 font-medium">Pengurangan</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <!-- Product -->
+            <div>
+                <label for="productId" class="block text-sm font-medium text-gray-700 mb-1">
+                    Produk <span class="text-red-500">*</span>
+                </label>
+                <select th:field="*{productId}"
+                        id="productId"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">-- Pilih Produk --</option>
+                    <option th:each="p : ${products}"
+                            th:value="${p.id}"
+                            th:text="${p.code + ' - ' + p.name + ' (' + p.unit + ')'}">Produk</option>
+                </select>
+                <p th:if="${#fields.hasErrors('productId')}" th:errors="*{productId}" class="mt-1 text-sm text-red-600"></p>
+            </div>
+
+            <!-- Transaction Date -->
+            <div>
+                <label for="transactionDate" class="block text-sm font-medium text-gray-700 mb-1">
+                    Tanggal Penyesuaian <span class="text-red-500">*</span>
+                </label>
+                <input type="date"
+                       th:field="*{transactionDate}"
+                       id="transactionDate"
+                       required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                <p th:if="${#fields.hasErrors('transactionDate')}" th:errors="*{transactionDate}" class="mt-1 text-sm text-red-600"></p>
+            </div>
+
+            <!-- Quantity and Unit Cost -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
+                        Kuantitas <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number"
+                           th:field="*{quantity}"
+                           id="quantity"
+                           step="0.0001"
+                           min="0.0001"
+                           required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    <p th:if="${#fields.hasErrors('quantity')}" th:errors="*{quantity}" class="mt-1 text-sm text-red-600"></p>
+                </div>
+                <div id="unit-cost-container">
+                    <label for="unitCost" class="block text-sm font-medium text-gray-700 mb-1">
+                        Harga Satuan
+                    </label>
+                    <input type="number"
+                           th:field="*{unitCost}"
+                           id="unitCost"
+                           step="0.01"
+                           min="0"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    <p class="mt-1 text-xs text-gray-500">Wajib diisi untuk penambahan stok</p>
+                </div>
+            </div>
+
+            <!-- Reference Number -->
+            <div>
+                <label for="referenceNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                    Nomor Referensi
+                </label>
+                <input type="text"
+                       th:field="*{referenceNumber}"
+                       id="referenceNumber"
+                       maxlength="100"
+                       placeholder="Contoh: ADJ-001, SO-123"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+                    Alasan Penyesuaian <span class="text-red-500">*</span>
+                </label>
+                <textarea th:field="*{notes}"
+                          id="notes"
+                          rows="3"
+                          maxlength="500"
+                          required
+                          placeholder="Contoh: Stock opname, barang rusak, kadaluarsa, koreksi kesalahan input"
+                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"></textarea>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-4 pt-4 border-t">
+                <a th:href="@{/inventory/transactions}" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    Batal
+                </a>
+                <button type="submit" id="btn-submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
+                    Simpan Penyesuaian
+                </button>
+            </div>
+        </form>
+    </section>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+<div th:fragment="widget" class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-semibold text-gray-800 text-sm">📥 Piutang Customer (AR)</h3>
+        <a th:href="@{/invoices}" class="text-xs text-primary-600 hover:underline">Lihat Invoice →</a>
+    </div>
+    <div class="p-5 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+            <div class="p-3 bg-orange-50 rounded-lg">
+                <p class="text-xs text-gray-500 uppercase">Total Outstanding</p>
+                <p class="text-lg font-bold text-orange-700 mt-0.5" th:text="${#numbers.formatCurrency(ar.totalOutstanding())}">Rp 0</p>
+            </div>
+            <div class="p-3 rounded-lg" th:classappend="${ar.overdueAmount().compareTo(T(java.math.BigDecimal).ZERO) > 0 ? 'bg-red-50' : 'bg-gray-50'}">
+                <p class="text-xs text-gray-500 uppercase">Sudah Jatuh Tempo</p>
+                <p class="text-lg font-bold mt-0.5" th:classappend="${ar.overdueAmount().compareTo(T(java.math.BigDecimal).ZERO) > 0 ? 'text-red-600' : 'text-gray-500'}" th:text="${#numbers.formatCurrency(ar.overdueAmount())}">Rp 0</p>
+                <p th:if="${ar.overdueCount() > 0}" class="text-xs text-red-500 mt-0.5" th:text="'⚠ ' + ${ar.overdueCount()} + ' invoice terlambat'"></p>
+            </div>
+        </div>
+        <div th:if="${!ar.aging().empty()}">
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Aging Piutang</p>
+            <div class="space-y-1.5">
+                <div th:each="bucket : ${ar.aging()}" class="flex items-center gap-2 text-xs">
+                    <span class="w-36 text-gray-600 truncate" th:text="${bucket.bucket}"></span>
+                    <div class="flex-1 bg-gray-100 rounded-full h-2">
+                        <div class="h-2 rounded-full"
+                             th:classappend="${bucket.bucket == 'Belum Jatuh Tempo' ? 'bg-green-400' : bucket.bucket == '1-30 Hari' ? 'bg-yellow-400' : bucket.bucket == '31-60 Hari' ? 'bg-orange-400' : 'bg-red-500'}"
+                             th:style="${ar.totalOutstanding().compareTo(T(java.math.BigDecimal).ZERO) > 0 ? 'width: ' + T(java.math.BigDecimal).valueOf(bucket.amount).multiply(T(java.math.BigDecimal).valueOf(100)).divide(ar.totalOutstanding(), 0, T(java.math.RoundingMode).HALF_UP) + '%' : 'width:0%'}">
+                        </div>
+                    </div>
+                    <span class="w-28 text-right font-mono text-gray-700" th:text="${#numbers.formatCurrency(bucket.amount)}"></span>
+                    <span class="w-8 text-right text-gray-400" th:text="'(' + ${bucket.count} + ')'"></span>
+                </div>
+            </div>
+        </div>
+        <div th:if="${!ar.top5().empty()}">
+            <p class="text-xs text-gray-400 uppercase tracking-wide mb-2">Piutang Terbesar</p>
+            <div class="space-y-1">
+                <div th:each="item : ${ar.top5()}" class="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-gray-800 truncate" th:text="${item.client_name}"></p>
+                        <p class="text-gray-400" th:text="${item.invoice_number} + ' · ' + ${item.due_date}"></p>
+                    </div>
+                    <span class="font-mono font-medium text-orange-600 ml-2" th:text="${#numbers.formatCurrency(item.outstanding)}"></span>
+                </div>
+            </div>
+        </div>
+        <div th:if="${ar.aging().empty() && ar.top5().empty()}" class="text-center text-gray-400 text-sm py-4">Tidak ada piutang outstanding ✓</div>
+    </div>
+</div>
+</body>
+</html>

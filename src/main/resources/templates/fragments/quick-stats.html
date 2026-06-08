@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+<div th:fragment="widget" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+    <!-- Revenue Bulan Ini -->
+    <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-400">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide">Revenue Bulan Ini</p>
+                <p class="text-lg font-bold text-green-700 mt-1"
+                   th:text="${#numbers.formatCurrency(stats.revenueThisMonth())}">Rp 0</p>
+            </div>
+            <div class="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center text-lg">💰</div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">
+            <span th:text="${stats.invoiceThisMonth()} + ' invoice baru'"></span>
+        </p>
+    </div>
+
+    <!-- Win Rate Quotation -->
+    <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-400">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide">Win Rate Quotation</p>
+                <p class="text-lg font-bold text-blue-700 mt-1"
+                   th:text="${stats.winRate()} + '%'">0%</p>
+            </div>
+            <div class="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center text-lg">🏆</div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2"
+           th:text="${stats.quotWon()} + ' menang dari ' + ${stats.quotTotal()} + ' direspon'"></p>
+    </div>
+
+    <!-- PO Baru -->
+    <div class="bg-white rounded-lg shadow p-4 border-l-4 border-orange-400">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide">PO Baru Bulan Ini</p>
+                <p class="text-lg font-bold text-orange-600 mt-1"
+                   th:text="${stats.poThisMonth()}">0</p>
+            </div>
+            <div class="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center text-lg">📦</div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Purchase Order ke supplier</p>
+    </div>
+
+    <!-- Tanggal & Waktu -->
+    <div class="bg-white rounded-lg shadow p-4 border-l-4 border-gray-300">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wide">Hari Ini</p>
+                <p class="text-base font-semibold text-gray-700 mt-1"
+                   th:text="${#temporals.format(#temporals.createToday(), 'dd MMM yyyy')}"></p>
+            </div>
+            <div class="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center text-lg">📅</div>
+        </div>
+        <div class="flex gap-2 mt-2">
+            <a th:href="@{/dashboard/industry}" class="text-xs text-primary-600 hover:underline">Full Dashboard</a>
+            <span class="text-gray-300">·</span>
+            <a th:href="@{/projects/dashboard}" class="text-xs text-primary-600 hover:underline">Proyek</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

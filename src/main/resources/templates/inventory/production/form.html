@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout(${order.id != null ? 'Edit Production Order' : 'Buat Production Order'}, ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title th:text="${order.id != null ? 'Edit Production Order' : 'Buat Production Order'}">Form Production Order</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="${order.id != null ? 'Edit Production Order' : 'Buat Production Order'}">Form Production Order</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-2xl">
+            <!-- Alerts -->
+            <div th:if="${error}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                <span th:text="${error}"></span>
+            </div>
+
+            <form th:action="@{/inventory/production/save}" method="post" class="space-y-6">
+                <input type="hidden" name="id" th:value="${order.id}">
+
+                <!-- Basic Info -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">Informasi Order</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label for="bomId" class="block text-sm font-medium text-gray-700 mb-1">Bill of Materials *</label>
+                            <select id="bomId" name="bomId" required
+                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                <option value="">-- Pilih BOM --</option>
+                                <option th:each="bom : ${boms}"
+                                        th:value="${bom.id}"
+                                        th:text="${bom.code + ' - ' + bom.name + ' (' + bom.product.name + ')'}"
+                                        th:selected="${order.billOfMaterial != null && order.billOfMaterial.id == bom.id}">BOM</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Jumlah Produksi *</label>
+                            <input type="number" id="quantity" name="quantity" th:value="${order.quantity}" step="0.01" min="0.01" required
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                            <p class="mt-1 text-xs text-gray-500">Jumlah produk jadi yang akan diproduksi</p>
+                        </div>
+                        <div>
+                            <label for="orderDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Order *</label>
+                            <input type="date" id="orderDate" name="orderDate" th:value="${order.orderDate}" required
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label for="plannedCompletionDate" class="block text-sm font-medium text-gray-700 mb-1">Target Selesai</label>
+                            <input type="date" id="plannedCompletionDate" name="plannedCompletionDate" th:value="${order.plannedCompletionDate}"
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                            <textarea id="notes" name="notes" rows="2"
+                                      class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                      th:text="${order.notes}"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-3">
+                    <a th:href="@{/inventory/production}" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Batal</a>
+                    <button type="submit" id="btn-simpan" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</body>
+</html>

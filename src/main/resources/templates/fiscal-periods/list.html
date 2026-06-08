@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Periode Fiskal', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Periode Fiskal</title>
+</head>
+<body>
+    <h1 id="page-title">Periode Fiskal</h1>
+
+    <section class="space-y-6">
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p class="text-sm text-green-800" th:text="${successMessage}"></p>
+        </div>
+        <div th:if="${errorMessage}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-sm text-red-800" th:text="${errorMessage}"></p>
+        </div>
+        <div th:if="${infoMessage}" class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-sm text-blue-800" th:text="${infoMessage}"></p>
+        </div>
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-4">
+                <!-- Filter Year -->
+                <select name="year"
+                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                        hx-get="/fiscal-periods"
+                        hx-trigger="change"
+                        hx-target="#period-table"
+                        hx-swap="outerHTML"
+                        hx-include="[name='status']">
+                    <option value="" th:selected="${year == null}">Semua Tahun</option>
+                    <option th:each="y : ${years}"
+                            th:value="${y}"
+                            th:text="${y}"
+                            th:selected="${year == y}">Tahun</option>
+                </select>
+
+                <!-- Filter Status -->
+                <select name="status"
+                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                        hx-get="/fiscal-periods"
+                        hx-trigger="change"
+                        hx-target="#period-table"
+                        hx-swap="outerHTML"
+                        hx-include="[name='year']">
+                    <option value="" th:selected="${status == null}">Semua Status</option>
+                    <option th:each="s : ${statuses}"
+                            th:value="${s.name()}"
+                            th:text="${s.indonesianName}"
+                            th:selected="${status == s}">Status</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Generate Year Button -->
+                <form th:action="@{/fiscal-periods/generate-year}" method="post" class="inline">
+                    <div class="flex items-center gap-2">
+                        <input type="number" name="year" th:value="${#temporals.year(#temporals.createNow())}"
+                               class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               min="2000" max="2100">
+                        <button type="submit"
+                                id="btn-generate-year"
+                                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                            Generate Tahun
+                        </button>
+                    </div>
+                </form>
+
+                <a th:href="@{/fiscal-periods/new}"
+                   id="btn-new-period"
+                   class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Periode Baru
+                </a>
+            </div>
+        </div>
+
+        <!-- Period Table -->
+        <div class="bg-white rounded-lg shadow">
+            <th:block th:insert="~{fiscal-periods/fragments/period-table :: table}"/>
+        </div>
+    </section>
+</body>
+</html>

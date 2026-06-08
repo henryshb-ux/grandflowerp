@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Delivery Order', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head><title>Delivery Order</title></head>
+<body>
+<h1 id="page-title">Delivery Order (Surat Jalan)</h1>
+
+<section class="space-y-6" data-testid="do-list">
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-gray-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Draft</p>
+            <p class="text-3xl font-bold text-gray-600 mt-1" th:text="${summary.draftCount}">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Dalam Pengiriman</p>
+            <p class="text-3xl font-bold text-yellow-600 mt-1" th:text="${summary.shippedCount}">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Diterima</p>
+            <p class="text-3xl font-bold text-green-600 mt-1" th:text="${summary.deliveredCount}">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">BAST Ditandatangani</p>
+            <p class="text-3xl font-bold text-blue-600 mt-1" th:text="${summary.bastSignedCount}">0</p>
+        </div>
+    </div>
+
+    <!-- Filter & Actions -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <form th:action="@{/delivery-orders}" method="get" class="flex flex-wrap items-center gap-2">
+            <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    onchange="this.form.submit()">
+                <option value="">Semua Status</option>
+                <option th:each="s : ${statuses}"
+                        th:value="${s.name()}"
+                        th:text="${s.label}"
+                        th:selected="${selectedStatus != null && selectedStatus.name() == s.name()}">
+                </option>
+            </select>
+            <input type="text" name="search" th:value="${search}"
+                   placeholder="Cari nomor DO / customer..."
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-56">
+            <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
+                Cari
+            </button>
+            <a th:if="${search != null || selectedStatus != null}" th:href="@{/delivery-orders}"
+               class="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm">Reset</a>
+        </form>
+        <a th:href="@{/sales-orders}"
+           class="px-4 py-2 border border-green-300 text-green-700 rounded-lg text-sm hover:bg-green-50 whitespace-nowrap transition-colors">
+            Pilih dari Sales Order →
+        </a>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. DO</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dari SO</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tgl Kirim</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ekspedisi</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. BAST</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+            <tr th:if="${page.empty}">
+                <td colspan="8" class="px-4 py-10 text-center text-gray-400">
+                    <p class="text-base">Belum ada Delivery Order</p>
+                    <p class="text-sm mt-1">Buat DO dari halaman detail Sales Order</p>
+                </td>
+            </tr>
+            <tr th:each="do_ : ${page.content}" class="hover:bg-gray-50">
+                <td class="px-4 py-3">
+                    <a th:href="@{/delivery-orders/{id}(id=${do_.id})}"
+                       class="text-primary-600 hover:underline font-mono font-medium"
+                       th:text="${do_.doNumber}">DO-2026-001</a>
+                </td>
+                <td class="px-4 py-3">
+                    <a th:if="${do_.salesOrder != null}"
+                       th:href="@{/sales-orders/{id}(id=${do_.salesOrder.id})}"
+                       class="text-primary-600 hover:underline font-mono text-xs"
+                       th:text="${do_.salesOrder.soNumber}"></a>
+                </td>
+                <td class="px-4 py-3">
+                    <p class="font-medium" th:text="${do_.client?.name}">-</p>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap"
+                    th:text="${#temporals.format(do_.deliveryDate, 'dd MMM yyyy')}">-</td>
+                <td class="px-4 py-3 text-gray-600 text-xs" th:text="${do_.shippedBy ?: '—'}">-</td>
+                <td class="px-4 py-3 font-mono text-xs" th:text="${do_.bastNumber ?: '—'}">-</td>
+                <td class="px-4 py-3 text-center">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium"
+                          th:classappend="${
+                              do_.status.name() == 'DRAFT'       ? 'bg-gray-100 text-gray-600'    :
+                              do_.status.name() == 'SHIPPED'     ? 'bg-yellow-100 text-yellow-700' :
+                              do_.status.name() == 'DELIVERED'   ? 'bg-green-100 text-green-700'   :
+                              do_.status.name() == 'BAST_SIGNED' ? 'bg-blue-100 text-blue-700'     :
+                                                                    'bg-red-100 text-red-600'}"
+                          th:text="${do_.status.label}"></span>
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
+                    <a th:href="@{/delivery-orders/{id}(id=${do_.id})}"
+                       class="text-primary-600 hover:underline text-xs">Detail</a>
+                    <a th:href="@{/delivery-orders/{id}/print(id=${do_.id})}" target="_blank"
+                       class="text-gray-500 hover:underline text-xs">Cetak</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div th:if="${page.totalPages > 1}" class="flex items-center justify-between text-sm text-gray-500">
+        <p th:text="'Halaman ' + ${page.number + 1} + ' dari ' + ${page.totalPages}"></p>
+        <div class="flex gap-2">
+            <a th:if="${!page.first}"
+               th:href="@{/delivery-orders(page=${page.number - 1}, status=${selectedStatus}, search=${search})}"
+               class="px-3 py-1 border rounded hover:bg-gray-50">← Prev</a>
+            <a th:if="${!page.last}"
+               th:href="@{/delivery-orders(page=${page.number + 1}, status=${selectedStatus}, search=${search})}"
+               class="px-3 py-1 border rounded hover:bg-gray-50">Next →</a>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

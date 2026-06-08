@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Detail Periode Fiskal', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title>Detail Periode Fiskal</title>
+</head>
+<body>
+    <h1 id="page-title">Detail Periode Fiskal</h1>
+
+    <section class="space-y-6" data-testid="period-detail">
+        <!-- Flash Messages -->
+        <div th:if="${successMessage}" class="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p class="text-sm text-green-800" th:text="${successMessage}"></p>
+        </div>
+        <div th:if="${errorMessage}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-sm text-red-800" th:text="${errorMessage}"></p>
+        </div>
+
+        <!-- Header -->
+        <div class="flex items-start justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900" data-testid="period-name" th:text="${period.periodDisplayName}">Januari 2025</h2>
+                <p class="text-sm text-gray-500 font-mono" data-testid="period-code" th:text="${period.periodName}">2025-01</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span th:class="'px-3 py-1 text-sm font-medium rounded-full ' +
+                    (${period.status.name() == 'OPEN'} ? 'bg-green-100 text-green-800' :
+                    (${period.status.name() == 'MONTH_CLOSED'} ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-blue-100 text-blue-800'))"
+                      data-testid="period-status"
+                      th:text="${period.status.indonesianName}">Terbuka</span>
+            </div>
+        </div>
+
+        <!-- Info Card -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Periode</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-gray-500">Tanggal Mulai</p>
+                    <p class="font-medium" th:text="${#temporals.format(period.startDate, 'dd MMMM yyyy')}">01 Januari 2025</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Tanggal Berakhir</p>
+                    <p class="font-medium" th:text="${#temporals.format(period.endDate, 'dd MMMM yyyy')}">31 Januari 2025</p>
+                </div>
+                <div th:if="${period.monthClosedAt}">
+                    <p class="text-gray-500">Tutup Bulan</p>
+                    <p class="font-medium">
+                        <span th:text="${#temporals.format(period.monthClosedAt, 'dd MMM yyyy HH:mm')}">01 Feb 2025 10:00</span>
+                        <span class="text-gray-400" th:text="'oleh ' + ${period.monthClosedBy}">oleh admin</span>
+                    </p>
+                </div>
+                <div th:if="${period.taxFiledAt}">
+                    <p class="text-gray-500">Lapor SPT</p>
+                    <p class="font-medium">
+                        <span th:text="${#temporals.format(period.taxFiledAt, 'dd MMM yyyy HH:mm')}">20 Feb 2025 10:00</span>
+                        <span class="text-gray-400" th:text="'oleh ' + ${period.taxFiledBy}">oleh admin</span>
+                    </p>
+                </div>
+                <div th:if="${period.notes}" class="md:col-span-2">
+                    <p class="text-gray-500">Catatan</p>
+                    <p class="font-medium" th:text="${period.notes}">Catatan</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Workflow -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Alur Status</h3>
+            <div class="flex items-center justify-center gap-4">
+                <!-- Open -->
+                <div th:class="'flex flex-col items-center ' + (${period.status.name() == 'OPEN'} ? 'text-green-600' : 'text-gray-400')">
+                    <div th:class="'w-10 h-10 rounded-full flex items-center justify-center ' +
+                        (${period.status.name() == 'OPEN'} ? 'bg-green-100' : 'bg-gray-100')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs mt-1">Terbuka</span>
+                </div>
+                <div class="w-8 h-0.5 bg-gray-300"></div>
+                <!-- Month Closed -->
+                <div th:class="'flex flex-col items-center ' + (${period.status.name() == 'MONTH_CLOSED'} ? 'text-yellow-600' : 'text-gray-400')">
+                    <div th:class="'w-10 h-10 rounded-full flex items-center justify-center ' +
+                        (${period.status.name() == 'MONTH_CLOSED'} ? 'bg-yellow-100' : 'bg-gray-100')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs mt-1">Tutup Bulan</span>
+                </div>
+                <div class="w-8 h-0.5 bg-gray-300"></div>
+                <!-- Tax Filed -->
+                <div th:class="'flex flex-col items-center ' + (${period.status.name() == 'TAX_FILED'} ? 'text-blue-600' : 'text-gray-400')">
+                    <div th:class="'w-10 h-10 rounded-full flex items-center justify-center ' +
+                        (${period.status.name() == 'TAX_FILED'} ? 'bg-blue-100' : 'bg-gray-100')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-xs mt-1">SPT Dilaporkan</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between">
+            <a th:href="@{/fiscal-periods}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                &larr; Kembali ke Daftar
+            </a>
+            <div class="flex items-center gap-2">
+                <!-- Close Month Button -->
+                <form th:if="${period.canCloseMonth()}" id="form-close-month"
+                      th:action="@{/fiscal-periods/{id}/close-month(id=${period.id})}"
+                      method="post" class="inline">
+                    <button type="submit"
+                            data-testid="btn-close-month"
+                            class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">
+                        Tutup Bulan
+                    </button>
+                </form>
+
+                <!-- File Tax Button -->
+                <form th:if="${period.canFileTax()}" id="form-file-tax"
+                      th:action="@{/fiscal-periods/{id}/file-tax(id=${period.id})}"
+                      method="post" class="inline">
+                    <button type="submit"
+                            data-testid="btn-file-tax"
+                            class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                        Lapor SPT
+                    </button>
+                </form>
+
+                <!-- Reopen Button -->
+                <form th:if="${period.canReopen()}" id="form-reopen"
+                      th:action="@{/fiscal-periods/{id}/reopen(id=${period.id})}"
+                      method="post" class="inline">
+                    <button type="submit"
+                            data-testid="btn-reopen"
+                            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        Buka Kembali
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.getElementById('form-close-month')?.addEventListener('submit', function(e) {
+                if (!confirm('Tutup bulan untuk periode ini? Jurnal tidak bisa diposting ke periode ini setelah ditutup.')) {
+                    e.preventDefault();
+                }
+            });
+            document.getElementById('form-file-tax')?.addEventListener('submit', function(e) {
+                if (!confirm('Tandai SPT sudah dilaporkan? Periode tidak bisa dibuka kembali setelah ini.')) {
+                    e.preventDefault();
+                }
+            });
+            document.getElementById('form-reopen')?.addEventListener('submit', function(e) {
+                if (!confirm('Buka kembali periode ini?')) {
+                    e.preventDefault();
+                }
+            });
+        </script>
+</body>
+</html>

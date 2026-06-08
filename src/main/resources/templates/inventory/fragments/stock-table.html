@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head><title>stock table Fragment</title></head>
+<body>
+<div th:fragment="stockTable" id="stock-table">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Produk</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Biaya Rata-rata</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Nilai</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            <tr th:if="${balances.isEmpty()}" class="hover:bg-gray-50">
+                <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                    Tidak ada data stok
+                </td>
+            </tr>
+            <tr th:each="balance : ${balances}" class="hover:bg-gray-50" th:data-testid="'stock-row-' + ${balance.product.code}">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <a th:href="@{/inventory/stock/{id}(id=${balance.product.id})}"
+                       class="text-primary-600 hover:text-primary-800 font-medium"
+                       th:text="${balance.product.code}" th:data-testid="'stock-product-code-' + ${balance.product.code}">PRD001</a>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap" th:text="${balance.product.name}" th:data-testid="'stock-product-name-' + ${balance.product.code}">Produk A</td>
+                <td class="px-6 py-4 whitespace-nowrap text-gray-500" th:text="${balance.product.category?.name ?: '-'}">Kategori</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <span th:text="${#numbers.formatDecimal(balance.quantity, 0, 'COMMA', 2, 'POINT')}" th:data-testid="'stock-quantity-' + ${balance.product.code}">100</span>
+                    <span class="text-gray-500" th:text="${balance.product.unit}">pcs</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right" th:text="${#numbers.formatDecimal(balance.averageCost, 0, 'COMMA', 2, 'POINT')}">10,000</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right font-medium" th:text="${#numbers.formatDecimal(balance.totalCost, 0, 'COMMA', 0, 'POINT')}">1,000,000</td>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <span th:if="${balance.isBelowMinimum()}" class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
+                        Stok Rendah
+                    </span>
+                    <span th:unless="${balance.isBelowMinimum()}" class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                        Normal
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <a th:href="@{/inventory/stock/{id}(id=${balance.product.id})}"
+                       class="text-primary-600 hover:text-primary-800">
+                        <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div th:if="${balances.totalPages > 1}" class="px-6 py-4 border-t border-gray-200">
+        <div class="flex items-center justify-between">
+            <p class="text-sm text-gray-700">
+                Menampilkan <span th:text="${balances.number * balances.size + 1}">1</span> -
+                <span th:text="${balances.number * balances.size + balances.numberOfElements}">10</span>
+                dari <span th:text="${balances.totalElements}">100</span> data
+            </p>
+            <nav class="flex items-center gap-2">
+                <a th:href="@{/inventory/stock(page=${balances.number - 1}, search=${search}, categoryId=${categoryId})}"
+                   th:classappend="${!balances.hasPrevious()} ? 'pointer-events-none opacity-50'"
+                   class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Sebelumnya</a>
+                <span class="text-sm text-gray-500" th:text="${balances.number + 1} + ' / ' + ${balances.totalPages}">1 / 10</span>
+                <a th:href="@{/inventory/stock(page=${balances.number + 1}, search=${search}, categoryId=${categoryId})}"
+                   th:classappend="${!balances.hasNext()} ? 'pointer-events-none opacity-50'"
+                   class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Selanjutnya</a>
+            </nav>
+        </div>
+    </div>
+</div>
+</body>
+</html>

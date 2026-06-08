@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Surat Jalan ' + ${do_.doNumber}">Surat Jalan</title>
+    <style th:attr="nonce=${cspNonce}">
+        @page { size: A4; margin: 15mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-size: 10pt; line-height: 1.5; color: #1f2937; background: white;
+        }
+        .container { max-width: 210mm; margin: 0 auto; padding: 8mm; }
+
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: flex-start;
+                  margin-bottom: 6mm; padding-bottom: 4mm; border-bottom: 2px solid #16a34a; }
+        .company-logo { max-height: 55px; max-width: 180px; margin-bottom: 2mm; }
+        .company-name { font-size: 14pt; font-weight: 700; color: #1f2937; margin-bottom: 1mm; }
+        .company-details { font-size: 8pt; color: #4b5563; line-height: 1.6; }
+        .doc-title-section { text-align: right; }
+        .doc-title { font-size: 22pt; font-weight: 700; color: #16a34a; letter-spacing: 1px; }
+        .doc-number { font-size: 11pt; font-family: monospace; color: #374151; margin-top: 2mm; }
+
+        /* Info Grid */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-bottom: 5mm; }
+        .info-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; padding: 3mm; }
+        .info-box-title { font-size: 8pt; font-weight: 600; color: #6b7280; text-transform: uppercase;
+                          letter-spacing: 0.5px; margin-bottom: 1.5mm; }
+        .info-box-content { font-size: 9pt; color: #1f2937; line-height: 1.6; }
+        .info-box-content strong { font-weight: 700; font-size: 10pt; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+        th { background: #f0fdf4; color: #15803d; font-size: 8pt; font-weight: 700;
+             text-transform: uppercase; letter-spacing: 0.3px; padding: 2.5mm 3mm;
+             border: 1px solid #bbf7d0; text-align: left; }
+        td { padding: 2.5mm 3mm; border: 1px solid #e5e7eb; font-size: 9pt; vertical-align: top; }
+        tr:nth-child(even) td { background: #f9fafb; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-mono { font-family: monospace; }
+        .text-gray { color: #6b7280; font-size: 8pt; }
+
+        /* Signature */
+        .signature-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; margin-top: 8mm; }
+        .signature-box { text-align: center; }
+        .signature-title { font-size: 8pt; font-weight: 600; color: #374151;
+                           text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1mm; }
+        .signature-name { font-size: 8pt; color: #6b7280; margin-bottom: 1mm; }
+        .signature-line { border-bottom: 1px solid #9ca3af; margin: 12mm 4mm 2mm; }
+        .signature-label { font-size: 8pt; color: #6b7280; }
+
+        /* Footer */
+        .footer { margin-top: 6mm; padding-top: 3mm; border-top: 1px solid #e5e7eb;
+                  display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; }
+
+        /* Print controls */
+        .print-controls { position: fixed; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 1000; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;
+               cursor: pointer; border: none; text-decoration: none; }
+        .btn-print { background: #16a34a; color: white; }
+        .btn-back { background: #f3f4f6; color: #374151; }
+        @media print {
+            .print-controls { display: none; }
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .container { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="print-controls">
+    <a th:href="${backUrl}" class="btn btn-back">← Kembali</a>
+    <button onclick="window.print()" class="btn btn-print">🖨 Cetak</button>
+</div>
+
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                 th:src="@{${company.companyLogoPath}}" alt="Logo" class="company-logo">
+            <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                 th:src="@{${theme.logoPath}}" alt="Logo" class="company-logo">
+            <div class="company-name" th:text="${company.companyName}">Nama Perusahaan</div>
+            <div class="company-details">
+                <span th:if="${company.companyAddress}" th:text="${company.companyAddress}"></span><br>
+                <span th:if="${company.companyPhone}">Tel: <span th:text="${company.companyPhone}"></span></span>
+                <span th:if="${company.companyEmail}"> | <span th:text="${company.companyEmail}"></span></span><br>
+                <span th:if="${company.taxId}">NPWP: <span th:text="${company.taxId}"></span></span>
+            </div>
+        </div>
+        <div class="doc-title-section">
+            <div class="doc-title">SURAT JALAN</div>
+            <div class="doc-number" th:text="${do_.doNumber}">DO-2026-001</div>
+        </div>
+    </div>
+
+    <!-- Info Grid -->
+    <div class="info-grid">
+        <!-- Penerima -->
+        <div class="info-box">
+            <div class="info-box-title">Dikirim Kepada</div>
+            <div class="info-box-content">
+                <strong th:text="${do_.client?.name}">Customer</strong><br>
+                <span th:if="${do_.client?.address}" th:text="${do_.client?.address}"></span>
+                <span th:if="${do_.deliveryAddress != null}">
+                    <br><span style="color:#4b5563;font-size:8pt;">Alamat Kirim:</span><br>
+                    <span th:text="${do_.deliveryAddress}"></span>
+                </span>
+            </div>
+        </div>
+        <!-- Info Pengiriman -->
+        <div class="info-box">
+            <div class="info-box-title">Detail Pengiriman</div>
+            <div class="info-box-content">
+                <table style="border:none;margin:0;">
+                    <tr>
+                        <td style="border:none;padding:0.5mm 3mm 0.5mm 0;color:#6b7280;font-size:8pt;width:40%;">Tgl Kirim</td>
+                        <td style="border:none;padding:0.5mm 0;font-weight:600;"
+                            th:text="${#temporals.format(do_.deliveryDate, 'dd MMMM yyyy')}"></td>
+                    </tr>
+                    <tr th:if="${do_.salesOrder != null}">
+                        <td style="border:none;padding:0.5mm 3mm 0.5mm 0;color:#6b7280;font-size:8pt;">Ref SO</td>
+                        <td style="border:none;padding:0.5mm 0;font-family:monospace;"
+                            th:text="${do_.salesOrder.soNumber}"></td>
+                    </tr>
+                    <tr th:if="${do_.shippedBy != null}">
+                        <td style="border:none;padding:0.5mm 3mm 0.5mm 0;color:#6b7280;font-size:8pt;">Ekspedisi</td>
+                        <td style="border:none;padding:0.5mm 0;" th:text="${do_.shippedBy}"></td>
+                    </tr>
+                    <tr th:if="${do_.trackingNo != null}">
+                        <td style="border:none;padding:0.5mm 3mm 0.5mm 0;color:#6b7280;font-size:8pt;">No. Resi</td>
+                        <td style="border:none;padding:0.5mm 0;font-family:monospace;" th:text="${do_.trackingNo}"></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Item -->
+    <table>
+        <thead>
+        <tr>
+            <th style="width:5%">No</th>
+            <th style="width:40%">Deskripsi Barang</th>
+            <th style="width:10%;text-align:right">Qty</th>
+            <th style="width:8%">Sat</th>
+            <th style="width:22%">Serial Number</th>
+            <th style="width:15%">Keterangan</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="line, stat : ${do_.lines}">
+            <td class="text-center" th:text="${stat.index + 1}"></td>
+            <td>
+                <span style="font-weight:600;" th:text="${line.description}"></span>
+                <span th:if="${line.product != null}"
+                      class="text-gray" th:text="' (' + ${line.product.code} + ')'"></span>
+            </td>
+            <td class="text-right font-mono"
+                th:text="${#numbers.formatDecimal(line.quantity, 1, 2, 'COMMA')}"></td>
+            <td th:text="${line.unit ?: ''}"></td>
+            <td class="font-mono" style="font-size:8pt;"
+                th:text="${line.serialNumbers ?: '—'}"></td>
+            <td style="font-size:8pt;" th:text="${line.notes ?: ''}"></td>
+        </tr>
+        <!-- Empty rows untuk tampilan profesional -->
+        <tr th:if="${do_.lines.size() < 5}"
+            th:each="i : ${#numbers.sequence(do_.lines.size(), 4)}">
+            <td style="height:8mm;"></td>
+            <td></td><td></td><td></td><td></td><td></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Catatan -->
+    <div th:if="${do_.notes != null && !do_.notes.isBlank()}"
+         style="margin-bottom:4mm;padding:3mm;background:#fefce8;border:1px solid #fde68a;border-radius:4px;font-size:8.5pt;">
+        <strong>Catatan:</strong> <span th:text="${do_.notes}"></span>
+    </div>
+
+    <!-- Tanda Tangan -->
+    <div class="signature-section">
+        <div class="signature-box">
+            <div class="signature-title">Dikirim Oleh</div>
+            <div class="signature-name" th:text="${company.companyName}"></div>
+            <div class="signature-line"></div>
+            <div class="signature-label">( _____________________ )</div>
+            <div style="font-size:7.5pt;color:#9ca3af;margin-top:1mm;">Nama & Tanda Tangan</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Pengantar / Driver</div>
+            <div class="signature-name">&nbsp;</div>
+            <div class="signature-line"></div>
+            <div class="signature-label">( _____________________ )</div>
+            <div style="font-size:7.5pt;color:#9ca3af;margin-top:1mm;">Nama & Tanda Tangan</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Diterima Oleh</div>
+            <div class="signature-name" th:text="${do_.client?.name}"></div>
+            <div class="signature-line"></div>
+            <div class="signature-label">
+                <span th:if="${do_.receivedBy != null}"
+                      th:text="'( ' + ${do_.receivedBy} + ' )'">( _____________________ )</span>
+                <span th:if="${do_.receivedBy == null}">( _____________________ )</span>
+            </div>
+            <div style="font-size:7.5pt;color:#9ca3af;margin-top:1mm;">Nama, Tanda Tangan & Stempel</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span th:text="'Dicetak: ' + ${#temporals.format(#temporals.createNow(), 'dd MMMM yyyy HH:mm')}"></span>
+        <span th:text="${company.companyName} + ' — ' + ${do_.doNumber}"></span>
+        <span>Dokumen ini sah tanpa tanda tangan basah</span>
+    </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+<div th:fragment="widget" class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-semibold text-gray-800 text-sm">📊 Proyek Aktif</h3>
+        <a th:href="@{/projects/dashboard}" class="text-xs text-primary-600 hover:underline">Dashboard Proyek →</a>
+    </div>
+    <div th:if="${projects.empty()}" class="p-6 text-center text-gray-400 text-sm">
+        Belum ada proyek aktif. <a th:href="@{/projects/new}" class="text-primary-600 hover:underline">Buat proyek</a>
+    </div>
+    <div th:if="${!projects.empty()}" class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500">Proyek</th>
+                <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500">Gross Profit</th>
+                <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-500">Margin</th>
+                <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-500">Progress</th>
+                <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-500">Risk</th>
+                <th class="px-4 py-2.5"></th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="proj : ${projects}" class="hover:bg-gray-50">
+                <td class="px-4 py-2.5">
+                    <p class="font-medium text-gray-900" th:text="${proj.code()}"></p>
+                    <p class="text-xs text-gray-400" th:text="${proj.clientName()}"></p>
+                </td>
+                <td class="px-4 py-2.5 text-right font-mono font-medium" th:classappend="${proj.grossProfit().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-green-600' : 'text-red-600'}" th:text="${#numbers.formatCurrency(proj.grossProfit())}"></td>
+                <td class="px-4 py-2.5 text-center font-medium" th:classappend="${proj.profitMargin().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-green-700' : 'text-red-600'}" th:text="${proj.profitMargin()} + '%'"></td>
+                <td class="px-4 py-2.5">
+                    <div class="flex items-center gap-1">
+                        <div class="w-14 bg-gray-200 rounded-full h-1.5">
+                            <div class="h-1.5 rounded-full bg-blue-500" th:style="'width: ' + ${proj.progressPercent()} + '%'"></div>
+                        </div>
+                        <span class="text-xs text-gray-500" th:text="${proj.progressPercent()} + '%'"></span>
+                    </div>
+                </td>
+                <td class="px-4 py-2.5 text-center">
+                    <span class="px-1.5 py-0.5 rounded text-xs font-medium"
+                          th:classappend="${proj.riskLevel() == 'HIGH' ? 'bg-red-100 text-red-700' : proj.riskLevel() == 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}"
+                          th:text="${proj.riskLevel()}"></span>
+                </td>
+                <td class="px-4 py-2.5 text-right">
+                    <a th:href="@{/projects/{id}/finance(id=${proj.id()})}" class="text-xs text-primary-600 hover:underline">Detail</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout(${bom.id != null ? 'Edit BOM' : 'Tambah BOM'}, ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title th:text="${bom.id != null ? 'Edit BOM' : 'Tambah BOM'}">Form BOM</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="${bom.id != null ? 'Edit Bill of Materials' : 'Tambah Bill of Materials'}">Form BOM</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-4xl">
+            <!-- Alerts -->
+            <div th:if="${error}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                <span th:text="${error}"></span>
+            </div>
+
+            <form th:action="@{/inventory/bom/save}" method="post" class="space-y-6">
+                <input type="hidden" name="id" th:value="${bom.id}">
+
+                <!-- Basic Info -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">Informasi BOM</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="code" class="block text-sm font-medium text-gray-700 mb-1">Kode BOM *</label>
+                            <input type="text" id="code" name="code" th:value="${bom.code}" required
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama BOM *</label>
+                            <input type="text" id="name" name="name" th:value="${bom.name}" required
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label for="productId" class="block text-sm font-medium text-gray-700 mb-1">Produk Jadi *</label>
+                            <select id="productId" name="productId" required
+                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                <option value="">-- Pilih Produk --</option>
+                                <option th:each="product : ${products}"
+                                        th:value="${product.id}"
+                                        th:text="${product.code + ' - ' + product.name}"
+                                        th:selected="${bom.product != null && bom.product.id == product.id}">Produk</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="outputQuantity" class="block text-sm font-medium text-gray-700 mb-1">Jumlah Output *</label>
+                            <input type="number" id="outputQuantity" name="outputQuantity" th:value="${bom.outputQuantity}" step="0.01" min="0.01" required
+                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                            <textarea id="description" name="description" rows="2"
+                                      class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                      th:text="${bom.description}"></textarea>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="active" name="active" th:checked="${bom.id == null || bom.active}" value="true"
+                                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                            <label for="active" class="ml-2 block text-sm text-gray-900">Aktif</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Components -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-medium text-gray-900">Komponen</h2>
+                        <button type="button" id="add-component-btn"
+                                class="inline-flex items-center px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Tambah Komponen
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Komponen *</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase w-32">Jumlah *</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Catatan</th>
+                                    <th class="px-4 py-2 w-16"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="component-lines" class="bg-white divide-y divide-gray-200">
+                                <!-- Template row (hidden, used for cloning) -->
+                                <tr id="component-row-template" class="hidden">
+                                    <td class="px-4 py-2">
+                                        <select name="componentId[]" disabled
+                                                class="component-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                                            <option value="">-- Pilih Komponen --</option>
+                                            <option th:each="product : ${products}"
+                                                    th:value="${product.id}"
+                                                    th:text="${product.code + ' - ' + product.name}">Komponen</option>
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <input type="number" name="componentQty[]" value="1" step="0.01" min="0.01" disabled
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm text-right">
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <input type="text" name="componentNotes[]" disabled
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                                    </td>
+                                    <td class="px-4 py-2 text-center">
+                                        <button type="button" class="remove-line-btn text-red-600 hover:text-red-900">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- Existing lines -->
+                                <tr th:each="line : ${bom.lines}" class="component-row">
+                                    <td class="px-4 py-2">
+                                        <select name="componentId[]" required
+                                                class="component-select w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                                            <option value="">-- Pilih Komponen --</option>
+                                            <option th:each="product : ${products}"
+                                                    th:value="${product.id}"
+                                                    th:text="${product.code + ' - ' + product.name}"
+                                                    th:selected="${line.component != null && line.component.id == product.id}">Komponen</option>
+                                        </select>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <input type="number" name="componentQty[]" th:value="${line.quantity}" step="0.01" min="0.01" required
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm text-right">
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <input type="text" name="componentNotes[]" th:value="${line.notes}"
+                                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                                    </td>
+                                    <td class="px-4 py-2 text-center">
+                                        <button type="button" class="remove-line-btn text-red-600 hover:text-red-900">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p id="no-components-msg" class="text-center text-gray-500 py-4" th:classappend="${bom.lines != null && !bom.lines.isEmpty()} ? 'hidden' : ''">
+                        Belum ada komponen. Klik "Tambah Komponen" untuk menambahkan.
+                    </p>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-3">
+                    <a th:href="@{/inventory/bom}" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Batal</a>
+                    <button type="submit" id="btn-simpan" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+        <script th:attr="nonce=${cspNonce}">
+            document.addEventListener('DOMContentLoaded', function() {
+                const tbody = document.getElementById('component-lines');
+                const template = document.getElementById('component-row-template');
+                const addBtn = document.getElementById('add-component-btn');
+                const noComponentsMsg = document.getElementById('no-components-msg');
+
+                function updateEmptyMessage() {
+                    const rows = tbody.querySelectorAll('.component-row');
+                    if (rows.length === 0) {
+                        noComponentsMsg.classList.remove('hidden');
+                    } else {
+                        noComponentsMsg.classList.add('hidden');
+                    }
+                }
+
+                function attachRemoveHandler(btn) {
+                    btn.addEventListener('click', function() {
+                        this.closest('tr').remove();
+                        updateEmptyMessage();
+                    });
+                }
+
+                // Attach handlers to existing rows
+                tbody.querySelectorAll('.component-row .remove-line-btn').forEach(attachRemoveHandler);
+
+                // Add new row
+                addBtn.addEventListener('click', function() {
+                    const clone = template.cloneNode(true);
+                    clone.removeAttribute('id');
+                    clone.classList.remove('hidden');
+                    clone.classList.add('component-row');
+                    // Enable inputs
+                    clone.querySelectorAll('select, input').forEach(function(el) {
+                        el.removeAttribute('disabled');
+                        if (el.tagName === 'SELECT' || el.name === 'componentQty[]') {
+                            el.setAttribute('required', 'required');
+                        }
+                    });
+                    attachRemoveHandler(clone.querySelector('.remove-line-btn'));
+                    tbody.appendChild(clone);
+                    updateEmptyMessage();
+                });
+            });
+        </script>
+</body>
+</html>

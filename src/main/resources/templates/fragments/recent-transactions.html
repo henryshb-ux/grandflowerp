@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head><title>recent transactions Fragment</title></head>
+<body>
+    <!-- Recent Transactions Fragment -->
+    <div th:fragment="transactions">
+        <div class="p-4 border-b border-gray-200 flex-shrink-0">
+            <div class="flex items-center justify-between">
+                <h2 id="section-transaksi-terbaru" class="text-sm font-semibold text-gray-900">Transaksi Terbaru</h2>
+                <a th:href="@{/transactions}" class="text-xs text-primary-600 hover:text-primary-700">Lihat Semua</a>
+            </div>
+        </div>
+        <div class="flex-1 overflow-y-auto divide-y divide-gray-200">
+            <div th:if="${transactions.isEmpty()}" class="px-4 py-8 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="mt-2 text-sm text-gray-500">Belum ada transaksi</p>
+            </div>
+            
+            <!-- Transaction Item -->
+            <div th:each="tx : ${transactions}" class="px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center min-w-0">
+                        <div th:if="${tx.category().name() == 'INCOME'}" class="w-8 h-8 bg-accent-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <div th:unless="${tx.category().name() == 'INCOME'}" class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate" th:text="${tx.description()}">Transaction Description</p>
+                            <p class="text-xs text-gray-500 truncate" th:text="${tx.transactionNumber()}">TXN-001</p>
+                        </div>
+                    </div>
+                    <div class="text-right flex-shrink-0 ml-2">
+                        <p th:if="${tx.category().name() == 'INCOME'}" 
+                           class="text-sm font-semibold text-accent-600"
+                           th:text="'+Rp ' + ${#numbers.formatDecimal(tx.amount() / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">+Rp 0jt</p>
+                        <p th:unless="${tx.category().name() == 'INCOME'}" 
+                           class="text-sm font-semibold text-red-600"
+                           th:text="'-Rp ' + ${#numbers.formatDecimal(tx.amount() / 1000000, 0, 'POINT', 1, 'COMMA')} + 'jt'">-Rp 0jt</p>
+                        <p class="text-xs text-gray-500" th:text="${#temporals.format(tx.transactionDate(), 'd MMM')}">1 Nov</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

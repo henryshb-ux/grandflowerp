@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Import Data', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title>Import Data</title>
+</head>
+<body>
+    <h1 id="page-title">Import Data</h1>
+
+    <section class="max-w-2xl mx-auto">
+        <!-- Success Message -->
+        <div id="import-success-message" th:if="${successMessage}" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            <span th:text="${successMessage}">Success message</span>
+        </div>
+
+        <!-- Error Message -->
+        <div id="import-error-message" th:if="${errorMessage}" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <span th:text="${errorMessage}">Error message</span>
+        </div>
+
+        <!-- Import Form -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center mb-4">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 id="import-title" class="text-lg font-semibold text-gray-900">Import Data Lengkap</h2>
+                    <p class="text-sm text-gray-500">Upload file ZIP hasil ekspor untuk mengganti seluruh data</p>
+                </div>
+            </div>
+
+            <form th:action="@{/settings/import}" method="post" enctype="multipart/form-data" class="space-y-4">
+                <div>
+                    <label for="file" class="block text-sm font-medium text-gray-700 mb-1">File ZIP</label>
+                    <input type="file" id="file" name="file" accept=".zip"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                           required>
+                </div>
+
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex">
+                        <svg class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <div class="text-sm text-yellow-700">
+                            <p class="font-medium">Peringatan</p>
+                            <p>Import akan menghapus SELURUH data yang ada dan menggantinya dengan data dari file. Pastikan Anda sudah mengekspor data terlebih dahulu sebagai backup.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-import"
+                        class="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    Import Data
+                </button>
+            </form>
+        </div>
+
+        <!-- Info Section -->
+        <div class="mt-8 bg-gray-50 rounded-lg p-6">
+            <h3 id="instructions-title" class="text-lg font-semibold text-gray-900 mb-4">Petunjuk</h3>
+            <div class="space-y-4 text-sm text-gray-600">
+                <div>
+                    <h4 class="font-medium text-gray-900">Format File</h4>
+                    <p class="mt-1">File ZIP yang dihasilkan dari menu Ekspor Data. File berisi CSV untuk semua entitas dan folder dokumen.</p>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900">Proses Import</h4>
+                    <ol class="list-decimal list-inside mt-1 space-y-1">
+                        <li>Semua tabel akan dikosongkan (truncate)</li>
+                        <li>Data dari CSV diimpor sesuai urutan dependensi</li>
+                        <li>File dokumen dikembalikan ke folder storage</li>
+                    </ol>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-900">Data yang Diimpor</h4>
+                    <p class="mt-1">Pengaturan perusahaan, bagan akun, template jurnal, klien, proyek, karyawan, transaksi, jurnal, dokumen, dan data lainnya.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Link to Export -->
+        <div class="mt-4 text-center">
+            <a id="link-to-export" th:href="@{/settings/export}" class="text-blue-600 hover:text-blue-800 text-sm">
+                &larr; Kembali ke halaman Ekspor
+            </a>
+        </div>
+    </section>
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.getElementById('btn-import')?.closest('form')?.addEventListener('submit', function(e) {
+                if (!confirm('PERINGATAN: Seluruh data akan dihapus dan diganti dengan data dari file. Lanjutkan?')) {
+                    e.preventDefault();
+                }
+            });
+        </script>
+</body>
+</html>

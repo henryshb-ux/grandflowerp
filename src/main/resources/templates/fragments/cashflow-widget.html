@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<body>
+<div th:fragment="widget" class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-semibold text-gray-800 text-sm">💧 Proyeksi Cashflow 30 Hari</h3>
+        <span class="text-xs text-gray-400" th:text="'Per ' + ${#temporals.format(#temporals.createToday(), 'dd MMM yyyy')}"></span>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-3 gap-4 mb-5">
+            <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <p class="text-xs text-gray-500">Kas Saat Ini</p>
+                <p class="text-base font-bold text-gray-800 mt-0.5" th:text="${#numbers.formatCurrency(cashflow.cashNow())}"></p>
+            </div>
+            <div class="text-center p-3 bg-green-50 rounded-lg">
+                <p class="text-xs text-gray-500">Est. Masuk (Piutang)</p>
+                <p class="text-base font-bold text-green-700 mt-0.5" th:text="${#numbers.formatCurrency(cashflow.expectedInflow())}"></p>
+            </div>
+            <div class="text-center p-3 bg-red-50 rounded-lg">
+                <p class="text-xs text-gray-500">Est. Keluar (Hutang)</p>
+                <p class="text-base font-bold text-red-600 mt-0.5" th:text="${#numbers.formatCurrency(cashflow.expectedOutflow())}"></p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between p-4 rounded-lg"
+             th:classappend="${cashflow.netCashflow().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}">
+            <p class="text-sm font-medium"
+               th:classappend="${cashflow.netCashflow().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-green-800' : 'text-red-800'}"
+               th:text="${cashflow.netCashflow().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'Proyeksi kas akhir 30 hari ✓' : '⚠ Potensi defisit kas!'}">
+            </p>
+            <p class="text-xl font-bold"
+               th:classappend="${cashflow.netCashflow().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-green-700' : 'text-red-600'}"
+               th:text="${#numbers.formatCurrency(cashflow.cashNow().add(cashflow.netCashflow()))}"></p>
+        </div>
+    </div>
+</div>
+</body>
+</html>

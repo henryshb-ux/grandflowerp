@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout(${account.id != null} ? 'Edit Akun' : 'Tambah Akun', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title th:text="${account.id != null} ? 'Edit Akun' : 'Tambah Akun'">Akun</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="${account.id != null} ? 'Edit Akun' : 'Tambah Akun'">Akun</h1>
+
+    <section id="account-form-content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-2xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/accounts}" class="hover:text-primary-600 transition-colors">Bagan Akun</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900" th:text="${account.id != null} ? 'Edit Akun' : 'Tambah Akun'">Akun</span>
+            </nav>
+
+            <!-- Form Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="p-6">
+                    <form th:action="${account.id != null} ? @{/accounts/{id}/edit(id=${account.id})} : @{/accounts/new}"
+                          th:object="${account}"
+                          method="post"
+                          novalidate
+                          class="space-y-6"
+                          x-data="accountForm"
+                          th:data-new-account="${account.id == null}">
+
+                        <!-- Validation Errors -->
+                        <div id="validation-errors" data-testid="validation-errors" th:if="${#fields.hasErrors('*')}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <p class="text-sm text-red-600 font-medium">Terdapat kesalahan:</p>
+                            <ul class="mt-2 text-sm text-red-600 list-disc list-inside">
+                                <li th:each="err : ${#fields.errors('*')}" th:text="${err}">Error</li>
+                            </ul>
+                        </div>
+
+                        <!-- Account Code -->
+                        <div>
+                            <label for="accountCode" class="block text-sm font-medium text-gray-700 mb-1">
+                                Kode Akun <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="accountCode" th:field="*{accountCode}"
+                                   data-testid="account-code"
+                                   placeholder="Contoh: 1.1.01"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                   th:classappend="${#fields.hasErrors('accountCode')} ? 'border-red-500' : ''">
+                            <p th:if="${#fields.hasErrors('accountCode')}" class="mt-1 text-sm text-red-600" th:errors="*{accountCode}">Error</p>
+                        </div>
+
+                        <!-- Account Name -->
+                        <div>
+                            <label for="accountName" class="block text-sm font-medium text-gray-700 mb-1">
+                                Nama Akun <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="accountName" th:field="*{accountName}"
+                                   data-testid="account-name"
+                                   placeholder="Contoh: Kas, Bank BCA, Pendapatan Jasa"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                   th:classappend="${#fields.hasErrors('accountName')} ? 'border-red-500' : ''">
+                            <p th:if="${#fields.hasErrors('accountName')}" class="mt-1 text-sm text-red-600" th:errors="*{accountName}">Error</p>
+                        </div>
+
+                        <!-- Account Type -->
+                        <div>
+                            <label for="accountType" class="block text-sm font-medium text-gray-700 mb-1">
+                                Tipe Akun <span th:if="${not hasParent}" class="text-red-500">*</span>
+                            </label>
+                            <select id="accountType" th:field="*{accountType}"
+                                    data-testid="account-type"
+                                    th:disabled="${hasChildren or hasParent}"
+                                    @change="suggestPermanent($event.target.value)"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                    th:classappend="${#fields.hasErrors('accountType')} ? 'border-red-500' : (${hasChildren or hasParent} ? 'bg-gray-100 cursor-not-allowed' : '')">
+                                <option value="">Pilih tipe akun</option>
+                                <option th:each="type : ${accountTypes}"
+                                        th:value="${type}"
+                                        th:text="${type.indonesianName}"
+                                        th:selected="${account.accountType == type}">Type</option>
+                            </select>
+                            <p th:if="${hasChildren}" class="mt-1 text-sm text-gray-500">Tipe akun tidak dapat diubah karena memiliki akun anak</p>
+                            <p th:if="${hasParent and not hasChildren}" class="mt-1 text-sm text-gray-500">Tipe akun mengikuti akun induk</p>
+                            <p th:if="${#fields.hasErrors('accountType')}" class="mt-1 text-sm text-red-600" th:errors="*{accountType}">Error</p>
+                        </div>
+
+                        <!-- Parent Account -->
+                        <div>
+                            <label for="parentId" class="block text-sm font-medium text-gray-700 mb-1">
+                                Akun Induk
+                            </label>
+                            <select id="parentId" name="parentId"
+                                    data-testid="parent-id"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                <option value="">Tanpa induk (akun utama)</option>
+                                <option th:each="parent : ${parentAccounts}"
+                                        th:value="${parent.id}"
+                                        th:text="${parent.accountCode + ' - ' + parent.accountName}"
+                                        th:selected="${account.parent != null and account.parent.id == parent.id}">Parent</option>
+                            </select>
+                        </div>
+
+                        <!-- Normal Balance -->
+                        <fieldset>
+                            <legend class="block text-sm font-medium text-gray-700 mb-2">
+                                Saldo Normal <span class="text-red-500">*</span>
+                            </legend>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center">
+                                    <input type="radio" th:field="*{normalBalance}" value="DEBIT"
+                                           th:disabled="${hasParent}"
+                                           class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                    <span class="ml-2 text-sm text-gray-700" th:classappend="${hasParent} ? 'text-gray-400' : ''">Debit</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" th:field="*{normalBalance}" value="CREDIT"
+                                           th:disabled="${hasParent}"
+                                           class="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500">
+                                    <span class="ml-2 text-sm text-gray-700" th:classappend="${hasParent} ? 'text-gray-400' : ''">Kredit</span>
+                                </label>
+                            </div>
+                            <p th:if="${hasParent}" class="mt-1 text-sm text-gray-500">Saldo normal mengikuti akun induk</p>
+                            <p th:if="${#fields.hasErrors('normalBalance')}" class="mt-1 text-sm text-red-600" th:errors="*{normalBalance}">Error</p>
+                        </fieldset>
+
+                        <!-- Is Header -->
+                        <div class="flex items-center">
+                            <input type="checkbox" id="isHeader" th:field="*{isHeader}"
+                                   class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                            <label for="isHeader" class="ml-2 text-sm text-gray-700">
+                                Akun Header (tidak dapat digunakan untuk transaksi)
+                            </label>
+                        </div>
+
+                        <!-- Permanent Account -->
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-gray-700">Akun Permanen</p>
+                                <p class="text-xs text-gray-500">Permanen: saldo dibawa ke periode berikutnya (Aset, Liabilitas, Ekuitas)</p>
+                                <p class="text-xs text-gray-500">Temporer: saldo di-reset saat tutup buku (Pendapatan, Beban)</p>
+                            </div>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="permanent" th:field="*{permanent}"
+                                       class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Permanen</span>
+                            </label>
+                        </div>
+
+                        <!-- Description -->
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                                Deskripsi
+                            </label>
+                            <textarea id="description" th:field="*{description}" rows="3"
+                                      data-testid="description"
+                                      placeholder="Penjelasan tentang penggunaan akun ini..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm resize-none"></textarea>
+                        </div>
+
+                        <!-- Active Status (only for edit) -->
+                        <div th:if="${account.id != null}" class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-gray-700">Status Akun</p>
+                                <p class="text-xs text-gray-500">Akun non-aktif tidak akan muncul di pilihan transaksi</p>
+                            </div>
+                            <label class="flex items-center">
+                                <input type="checkbox" th:field="*{active}"
+                                       class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500">
+                                <span class="ml-2 text-sm font-medium text-gray-700">Aktif</span>
+                            </label>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                            <a th:href="@{/accounts}"
+                               class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+                                Batal
+                            </a>
+                            <button id="btn-simpan" type="submit"
+                                    data-testid="btn-submit"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
+                                <span th:text="${account.id != null} ? 'Simpan Perubahan' : 'Simpan'">Simpan</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

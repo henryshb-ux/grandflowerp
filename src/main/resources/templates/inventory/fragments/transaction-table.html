@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head><title>transaction table Fragment</title></head>
+<body>
+<div th:fragment="transactionTable" id="transaction-table">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipe</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produk</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Kuantitas</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Satuan</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Referensi</th>
+                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            <tr th:if="${transactions.isEmpty()}" class="hover:bg-gray-50">
+                <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                    Tidak ada transaksi
+                </td>
+            </tr>
+            <tr th:each="tx : ${transactions}" class="hover:bg-gray-50" th:data-testid="'transaction-row-' + ${tx.id}">
+                <td class="px-6 py-4 whitespace-nowrap" th:text="${#temporals.format(tx.transactionDate, 'dd/MM/yyyy')}">01/01/2024</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 py-1 text-xs rounded-full"
+                          th:classappend="${tx.inbound} ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                          th:text="${tx.transactionType.displayName}" th:data-testid="'transaction-type-' + ${tx.transactionType.name()}">Pembelian</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <a th:href="@{/inventory/stock/{id}(id=${tx.product.id})}"
+                       class="text-primary-600 hover:text-primary-800"
+                       th:text="${tx.product.code + ' - ' + tx.product.name}" th:data-testid="'transaction-product-' + ${tx.product.code}">PRD001 - Produk A</a>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right">
+                    <span th:classappend="${tx.inbound} ? 'text-green-600' : 'text-red-600'"
+                          th:text="${(tx.inbound ? '+' : '-') + #numbers.formatDecimal(tx.quantity, 0, 'COMMA', 2, 'POINT')}">+100</span>
+                    <span class="text-gray-500" th:text="${tx.product.unit}">pcs</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right" th:text="${#numbers.formatDecimal(tx.unitCost, 0, 'COMMA', 2, 'POINT')}">10,000</td>
+                <td class="px-6 py-4 whitespace-nowrap text-right font-medium" th:text="${#numbers.formatDecimal(tx.totalCost, 0, 'COMMA', 0, 'POINT')}">1,000,000</td>
+                <td class="px-6 py-4 whitespace-nowrap text-gray-500" th:text="${tx.referenceNumber ?: '-'}">INV001</td>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <a th:href="@{/inventory/transactions/{id}(id=${tx.id})}"
+                       class="text-primary-600 hover:text-primary-800">
+                        <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                    </a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div th:if="${transactions.totalPages > 1}" class="px-6 py-4 border-t border-gray-200">
+        <div class="flex items-center justify-between">
+            <p class="text-sm text-gray-700">
+                Menampilkan <span th:text="${transactions.number * transactions.size + 1}">1</span> -
+                <span th:text="${transactions.number * transactions.size + transactions.numberOfElements}">10</span>
+                dari <span th:text="${transactions.totalElements}">100</span> data
+            </p>
+            <nav class="flex items-center gap-2">
+                <a th:href="@{/inventory/transactions(page=${transactions.number - 1}, productId=${productId}, transactionType=${transactionType}, startDate=${startDate}, endDate=${endDate})}"
+                   th:classappend="${!transactions.hasPrevious()} ? 'pointer-events-none opacity-50'"
+                   class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Sebelumnya</a>
+                <span class="text-sm text-gray-500" th:text="${transactions.number + 1} + ' / ' + ${transactions.totalPages}">1 / 10</span>
+                <a th:href="@{/inventory/transactions(page=${transactions.number + 1}, productId=${productId}, transactionType=${transactionType}, startDate=${startDate}, endDate=${endDate})}"
+                   th:classappend="${!transactions.hasNext()} ? 'pointer-events-none opacity-50'"
+                   class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Selanjutnya</a>
+            </nav>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head><title>Tax Detail Section Fragment</title></head>
+<body>
+
+<!-- Tax Detail List Section -->
+<div th:fragment="taxDetailSection" id="tax-detail-container" data-testid="tax-detail-section">
+    <!-- Success Message -->
+    <div th:if="${successMessage}"
+         class="mb-4 p-3 rounded-lg border bg-accent-50 border-accent-200 text-accent-700 text-sm flex items-center">
+        <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        <span th:text="${successMessage}">Success</span>
+    </div>
+
+    <!-- Existing Tax Details -->
+    <div th:if="${taxDetails != null and !taxDetails.isEmpty()}" class="space-y-3 mb-4" data-testid="tax-detail-list">
+        <div th:each="td : ${taxDetails}"
+             th:data-testid="${'tax-detail-card-' + td.id}"
+             class="border border-gray-200 rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+            <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                    <!-- Tax Type Badge -->
+                    <div class="flex items-center gap-2 mb-2">
+                        <span th:if="${td.eFaktur}"
+                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                              th:text="${td.taxType.indonesianName}">PPN Keluaran</span>
+                        <span th:if="${td.eBupot}"
+                              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                              th:text="${td.taxType.indonesianName}">PPh 23</span>
+                        <span th:if="${td.eFaktur and td.fakturNumber != null and !td.fakturNumber.isEmpty()}"
+                              class="text-xs text-gray-500" th:text="'No. Faktur: ' + ${td.fakturNumber}">No. Faktur: 010.000-25.00000001</span>
+                        <span th:if="${td.eBupot and td.bupotNumber != null and !td.bupotNumber.isEmpty()}"
+                              class="text-xs text-gray-500" th:text="'No. Bupot: ' + ${td.bupotNumber}">No. Bupot: BP-0001</span>
+                    </div>
+
+                    <!-- e-Faktur Details -->
+                    <div th:if="${td.eFaktur}" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div>
+                            <p class="text-xs text-gray-500">DPP</p>
+                            <p class="font-medium" th:text="${td.dpp != null} ? 'Rp ' + ${#numbers.formatDecimal(td.dpp, 0, 'POINT', 0, 'COMMA')} : '-'">Rp 0</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">PPN</p>
+                            <p class="font-medium" th:text="${td.ppn != null} ? 'Rp ' + ${#numbers.formatDecimal(td.ppn, 0, 'POINT', 0, 'COMMA')} : '-'">Rp 0</p>
+                        </div>
+                        <div th:if="${td.transactionCode != null}">
+                            <p class="text-xs text-gray-500">Kode Transaksi</p>
+                            <p class="font-medium" th:text="${td.transactionCode}">01</p>
+                        </div>
+                        <div th:if="${td.fakturDate != null}">
+                            <p class="text-xs text-gray-500">Tanggal Faktur</p>
+                            <p class="font-medium" th:text="${#temporals.format(td.fakturDate, 'dd/MM/yyyy')}">01/01/2025</p>
+                        </div>
+                    </div>
+
+                    <!-- e-Bupot Details -->
+                    <div th:if="${td.eBupot}" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        <div>
+                            <p class="text-xs text-gray-500">Jumlah Bruto</p>
+                            <p class="font-medium" th:text="${td.grossAmount != null} ? 'Rp ' + ${#numbers.formatDecimal(td.grossAmount, 0, 'POINT', 0, 'COMMA')} : '-'">Rp 0</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Tarif</p>
+                            <p class="font-medium" th:text="${td.taxRate != null} ? ${td.taxRate} + '%' : '-'">2%</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Jumlah Pajak</p>
+                            <p class="font-medium" th:text="${td.taxAmount != null} ? 'Rp ' + ${#numbers.formatDecimal(td.taxAmount, 0, 'POINT', 0, 'COMMA')} : '-'">Rp 0</p>
+                        </div>
+                        <div th:if="${td.taxObjectCode != null}">
+                            <p class="text-xs text-gray-500">Kode Objek Pajak</p>
+                            <p class="font-medium" th:text="${td.taxObjectCode}">24-104-01</p>
+                        </div>
+                    </div>
+
+                    <!-- Counterparty -->
+                    <div class="mt-2 text-xs text-gray-500">
+                        <span th:text="${td.counterpartyName}">PT Client A</span>
+                        <span th:if="${td.counterpartyNpwp != null and !td.counterpartyNpwp.isEmpty()}"
+                              th:text="' | NPWP: ' + ${td.counterpartyNpwp}"> | NPWP: XX.XXX.XXX.X-XXX.XXX</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center space-x-1 ml-2 flex-shrink-0">
+                    <button th:hx-get="@{/transactions/{tid}/tax-details/{did}/edit(tid=${transactionId}, did=${td.id})}"
+                            hx-target="#tax-detail-container"
+                            hx-swap="innerHTML"
+                            class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                            title="Edit">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </button>
+                    <button th:hx-delete="@{/transactions/{tid}/tax-details/{did}(tid=${transactionId}, did=${td.id})}"
+                            hx-target="#tax-detail-container"
+                            hx-swap="outerHTML"
+                            hx-confirm="Hapus detail pajak ini?"
+                            class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Hapus">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div th:if="${taxDetails == null or taxDetails.isEmpty()}" class="text-center py-6 text-gray-500" data-testid="tax-detail-empty">
+        <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
+        </svg>
+        <p class="mt-2 text-sm">Belum ada detail pajak</p>
+    </div>
+
+    <!-- Add Button -->
+    <div class="mt-4">
+        <button th:hx-get="@{/transactions/{id}/tax-details/form(id=${transactionId})}"
+                hx-target="#tax-detail-container"
+                hx-swap="innerHTML"
+                data-testid="btn-add-tax-detail"
+                class="inline-flex items-center px-3 py-2 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Tambah Detail Pajak
+        </button>
+    </div>
+</div>
+
+<!-- Tax Detail Form (Add/Edit) -->
+<div th:fragment="taxDetailForm" id="tax-detail-form-container" data-testid="tax-detail-form">
+    <!-- Error Message -->
+    <div th:if="${errorMessage}"
+         class="mb-4 p-3 rounded-lg border bg-red-50 border-red-200 text-red-700 text-sm flex items-center"
+         data-testid="tax-detail-error">
+        <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <span th:text="${errorMessage}">Error</span>
+    </div>
+
+    <form x-data="taxDetailForm"
+          th:data-tax-type="${detail.taxType != null ? detail.taxType.name() : (suggestions != null and !suggestions.isEmpty()) ? suggestions[0].taxType.name() : ''}"
+          th:data-id-type="${detail.counterpartyIdType != null ? detail.counterpartyIdType : 'TIN'}"
+          th:hx-post="${isEdit != null and isEdit}
+                  ? @{/transactions/{tid}/tax-details/{did}(tid=${transactionId}, did=${detail.id})}
+                  : @{/transactions/{tid}/tax-details(tid=${transactionId})}"
+          hx-target="#tax-detail-container"
+          hx-swap="outerHTML"
+          data-testid="tax-detail-form-element">
+
+        <h3 class="text-sm font-semibold text-gray-900 mb-4"
+            th:text="${isEdit != null and isEdit} ? 'Edit Detail Pajak' : 'Tambah Detail Pajak'">Tambah Detail Pajak</h3>
+
+        <!-- Tax Type Selection -->
+        <div class="mb-4">
+            <label for="taxType" class="block text-sm font-medium text-gray-700 mb-1">Jenis Pajak <span class="text-red-500">*</span></label>
+            <select id="taxType" name="taxType" x-model="taxType" data-testid="tax-type-select"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500" required>
+                <option value="">-- Pilih Jenis Pajak --</option>
+                <th:block th:each="tt : ${taxTypes}">
+                    <option th:value="${tt.name()}" th:text="${tt.indonesianName}"
+                            th:selected="${detail.taxType != null and detail.taxType.name() == tt.name()}">Type</option>
+                </th:block>
+            </select>
+        </div>
+
+        <!-- e-Faktur Section (PPN) -->
+        <div x-show="isPpn" x-cloak class="space-y-3 mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+            <h4 class="text-xs font-semibold text-green-800 uppercase tracking-wider">Data e-Faktur</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label for="fakturNumber" class="block text-xs font-medium text-gray-700 mb-1">No. Faktur</label>
+                    <input type="text" id="fakturNumber" name="fakturNumber" data-testid="faktur-number"
+                           th:value="${detail.fakturNumber}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="010.000-25.00000001" maxlength="20">
+                </div>
+                <div>
+                    <label for="fakturDate" class="block text-xs font-medium text-gray-700 mb-1">Tanggal Faktur</label>
+                    <input type="date" id="fakturDate" name="fakturDate" data-testid="faktur-date"
+                           th:value="${detail.fakturDate}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                <div>
+                    <label for="transactionCode" class="block text-xs font-medium text-gray-700 mb-1">Kode Transaksi</label>
+                    <select id="transactionCode" name="transactionCode" data-testid="transaction-code"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">-- Pilih --</option>
+                        <option value="01" th:selected="${detail.transactionCode == '01'}" th:text="'01 - Kepada Pihak Bukan Pemungut PPN'">01</option>
+                        <option value="02" th:selected="${detail.transactionCode == '02'}" th:text="'02 - Kepada Pemungut Bendaharawan'">02</option>
+                        <option value="03" th:selected="${detail.transactionCode == '03'}" th:text="'03 - Kepada Pemungut BUMN/Tertentu'">03</option>
+                        <option value="04" th:selected="${detail.transactionCode == '04'}" th:text="'04 - DPP Nilai Lain'">04</option>
+                        <option value="07" th:selected="${detail.transactionCode == '07'}" th:text="'07 - Penyerahan Tidak Dipungut PPN'">07</option>
+                        <option value="08" th:selected="${detail.transactionCode == '08'}" th:text="'08 - Dibebaskan dari PPN'">08</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label for="dpp" class="block text-xs font-medium text-gray-700 mb-1">DPP <span class="text-red-500">*</span></label>
+                    <input type="number" id="dpp" name="dpp" step="0.01" data-testid="dpp"
+                           th:value="${detail.dpp != null ? detail.dpp : (suggestions != null and !suggestions.isEmpty() and suggestions[0].dpp != null) ? suggestions[0].dpp : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="0">
+                </div>
+                <div>
+                    <label for="ppn" class="block text-xs font-medium text-gray-700 mb-1">PPN <span class="text-red-500">*</span></label>
+                    <input type="number" id="ppn" name="ppn" step="0.01" data-testid="ppn"
+                           th:value="${detail.ppn != null ? detail.ppn : (suggestions != null and !suggestions.isEmpty() and suggestions[0].ppn != null) ? suggestions[0].ppn : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="0">
+                </div>
+                <div>
+                    <label for="ppnbm" class="block text-xs font-medium text-gray-700 mb-1">PPnBM</label>
+                    <input type="number" id="ppnbm" name="ppnbm" step="0.01" data-testid="ppnbm"
+                           th:value="${detail.ppnbm != null and detail.ppnbm > 0 ? detail.ppnbm : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- e-Bupot Section (PPh) -->
+        <div x-show="isPph" x-cloak class="space-y-3 mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 class="text-xs font-semibold text-blue-800 uppercase tracking-wider">Data e-Bupot</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label for="bupotNumber" class="block text-xs font-medium text-gray-700 mb-1">No. Bukti Potong</label>
+                    <input type="text" id="bupotNumber" name="bupotNumber" data-testid="bupot-number"
+                           th:value="${detail.bupotNumber}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="BP-0001" maxlength="30">
+                </div>
+                <div>
+                    <label for="taxObjectCode" class="block text-xs font-medium text-gray-700 mb-1">Kode Objek Pajak</label>
+                    <input type="text" id="taxObjectCode" name="taxObjectCode" data-testid="tax-object-code"
+                           th:value="${detail.taxObjectCode}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="24-104-01" maxlength="20">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                    <label for="grossAmount" class="block text-xs font-medium text-gray-700 mb-1">Jumlah Bruto <span class="text-red-500">*</span></label>
+                    <input type="number" id="grossAmount" name="grossAmount" step="0.01" data-testid="gross-amount"
+                           th:value="${detail.grossAmount != null ? detail.grossAmount : (suggestions != null and !suggestions.isEmpty()) ? suggestions[0].grossAmount : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="0">
+                </div>
+                <div>
+                    <label for="taxRate" class="block text-xs font-medium text-gray-700 mb-1">Tarif (%) <span class="text-red-500">*</span></label>
+                    <input type="number" id="taxRate" name="taxRate" step="0.01" data-testid="tax-rate"
+                           th:value="${detail.taxRate != null ? detail.taxRate : (suggestions != null and !suggestions.isEmpty()) ? suggestions[0].taxRate : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="2.00">
+                </div>
+                <div>
+                    <label for="taxAmount" class="block text-xs font-medium text-gray-700 mb-1">Jumlah Pajak <span class="text-red-500">*</span></label>
+                    <input type="number" id="taxAmount" name="taxAmount" step="0.01" data-testid="tax-amount"
+                           th:value="${detail.taxAmount != null ? detail.taxAmount : (suggestions != null and !suggestions.isEmpty()) ? suggestions[0].taxAmount : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- Counterparty Section -->
+        <div x-show="hasType" x-cloak class="space-y-3 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h4 class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Lawan Transaksi</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label for="counterpartyName" class="block text-xs font-medium text-gray-700 mb-1">Nama <span class="text-red-500">*</span></label>
+                    <input type="text" id="counterpartyName" name="counterpartyName" data-testid="counterparty-name"
+                           th:value="${detail.counterpartyName != null ? detail.counterpartyName : (suggestions != null and !suggestions.isEmpty()) ? suggestions[0].name : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="Nama lawan transaksi" required maxlength="255">
+                </div>
+                <div>
+                    <label for="counterpartyIdType" class="block text-xs font-medium text-gray-700 mb-1">Tipe Identitas</label>
+                    <select id="counterpartyIdType" name="counterpartyIdType" x-model="idType" data-testid="counterparty-id-type"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                        <option value="TIN" th:selected="${detail.counterpartyIdType == null or detail.counterpartyIdType == 'TIN'}">TIN (NPWP)</option>
+                        <option value="NIK" th:selected="${detail.counterpartyIdType == 'NIK'}">NIK</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div x-show="isTin">
+                    <label for="counterpartyNpwp" class="block text-xs font-medium text-gray-700 mb-1">NPWP</label>
+                    <input type="text" id="counterpartyNpwp" name="counterpartyNpwp" data-testid="counterparty-npwp"
+                           th:value="${detail.counterpartyNpwp != null ? detail.counterpartyNpwp : (suggestions != null and !suggestions.isEmpty()) ? suggestions[0].npwp : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="01.234.567.8-901.000" maxlength="20">
+                </div>
+                <div x-show="isNik">
+                    <label for="counterpartyNik" class="block text-xs font-medium text-gray-700 mb-1">NIK</label>
+                    <input type="text" id="counterpartyNik" name="counterpartyNik" data-testid="counterparty-nik"
+                           th:value="${detail.counterpartyNik != null ? detail.counterpartyNik : (suggestions != null and !suggestions.isEmpty()) ? suggestions[0].nik : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="1234567890123456" maxlength="16">
+                </div>
+                <div>
+                    <label for="counterpartyNitku" class="block text-xs font-medium text-gray-700 mb-1">NITKU</label>
+                    <input type="text" id="counterpartyNitku" name="counterpartyNitku" data-testid="counterparty-nitku"
+                           th:value="${detail.counterpartyNitku != null ? detail.counterpartyNitku : (suggestions != null and !suggestions.isEmpty()) ? suggestions[0].nitku : ''}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="0000000000000000000001" maxlength="22">
+                </div>
+            </div>
+            <div>
+                <label for="counterpartyAddress" class="block text-xs font-medium text-gray-700 mb-1">Alamat</label>
+                <input type="text" id="counterpartyAddress" name="counterpartyAddress" data-testid="counterparty-address"
+                       th:value="${detail.counterpartyAddress != null ? detail.counterpartyAddress : (suggestions != null and !suggestions.isEmpty()) ? suggestions[0].address : ''}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                       placeholder="Alamat lawan transaksi">
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center space-x-2">
+            <button type="submit" data-testid="btn-save-tax-detail"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Simpan
+            </button>
+            <button type="button" data-testid="btn-cancel-tax-detail"
+                    th:hx-get="@{/transactions/{id}/tax-details(id=${transactionId})}"
+                    hx-target="#tax-detail-container"
+                    hx-swap="outerHTML"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                Batal
+            </button>
+        </div>
+    </form>
+</div>
+
+</body>
+</html>

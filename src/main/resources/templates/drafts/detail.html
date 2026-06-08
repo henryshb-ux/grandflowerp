@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Detail Draft Transaksi', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Detail Draft Transaksi</title>
+</head>
+<body>
+    <h1 id="page-title">Detail Draft Transaksi</h1>
+
+    <section id="draft-detail-content">
+        <!-- Back Link -->
+        <div class="mb-4">
+            <a id="link-back-to-list" th:href="@{/drafts}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Kembali ke Daftar Draft
+            </a>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Top Section: Receipt Image and Review Form Side by Side -->
+            <div th:if="${draft.status.name() == 'PENDING'}" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Receipt Image -->
+                <div th:if="${draft.document != null}" class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Gambar Struk</h2>
+                    <a th:href="@{/documents/{id}/download(id=${draft.document.id})}" target="_blank">
+                        <img th:src="@{/documents/{id}/download(id=${draft.document.id})}"
+                             alt="Receipt"
+                             class="w-full rounded-lg border border-gray-200 hover:opacity-90 transition-opacity">
+                    </a>
+                </div>
+
+                <!-- Review Form -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Review Draft</h2>
+
+                    <!-- Approve Form -->
+                    <form th:action="@{/drafts/{id}/approve(id=${draft.id})}" method="post" class="space-y-4">
+                        <div>
+                            <label for="templateId" class="block text-sm font-medium text-gray-700 mb-1">Template Jurnal</label>
+                            <select id="templateId" name="templateId" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                <option value="">Pilih Template</option>
+                                <option th:each="tpl : ${templates}"
+                                        th:value="${tpl.id}"
+                                        th:text="${tpl.templateName}"
+                                        th:selected="${draft.suggestedTemplate != null && draft.suggestedTemplate.id == tpl.id}">Template</option>
+                            </select>
+                            <p th:if="${draft.suggestedTemplate != null}" class="mt-1 text-xs text-gray-500">
+                                Suggested: <span th:text="${draft.suggestedTemplate.templateName}">Template</span>
+                            </p>
+                        </div>
+
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                            <input type="text" id="description" name="description"
+                                   th:value="${draft.merchantName}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                        </div>
+
+                        <div>
+                            <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Jumlah</label>
+                            <input type="number" id="amount" name="amount" step="0.01"
+                                   th:value="${draft.amount}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                        </div>
+
+                        <button type="submit" id="btn-approve"
+                                class="w-full inline-flex justify-center items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Approve & Buat Transaksi
+                        </button>
+                    </form>
+
+                    <div class="my-4 border-t border-gray-200"></div>
+
+                    <!-- Reject Form -->
+                    <form th:action="@{/drafts/{id}/reject(id=${draft.id})}" method="post" class="space-y-4">
+                        <div>
+                            <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Alasan Penolakan</label>
+                            <textarea id="reason" name="reason" rows="2" required
+                                      placeholder="Masukkan alasan penolakan..."
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"></textarea>
+                        </div>
+
+                        <button type="submit" id="btn-reject"
+                                class="w-full inline-flex justify-center items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Tolak Draft
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- For Approved/Rejected drafts, show image only -->
+            <div th:if="${draft.status.name() != 'PENDING' && draft.document != null}" class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Gambar Struk</h2>
+                <a th:href="@{/documents/{id}/download(id=${draft.document.id})}" target="_blank" class="block max-w-2xl">
+                    <img th:src="@{/documents/{id}/download(id=${draft.document.id})}"
+                         alt="Receipt"
+                         class="w-full rounded-lg border border-gray-200 hover:opacity-90 transition-opacity">
+                </a>
+            </div>
+
+            <!-- Main Content -->
+            <div class="space-y-6">
+                <!-- Draft Info Card -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">Informasi Draft</h2>
+                        <span th:if="${draft.status.name() == 'PENDING'}" id="status-badge-pending"
+                              class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                            Menunggu Review
+                        </span>
+                        <span th:if="${draft.status.name() == 'APPROVED'}" id="status-badge-approved"
+                              class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            Disetujui
+                        </span>
+                        <span th:if="${draft.status.name() == 'REJECTED'}" id="status-badge-rejected"
+                              class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            Ditolak
+                        </span>
+                    </div>
+
+                    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Sumber</dt>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                <span th:if="${draft.source.name() == 'TELEGRAM'}" class="inline-flex items-center">
+                                    <svg class="w-4 h-4 mr-1 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.538-.194 1.006.128.832.942z"/>
+                                    </svg>
+                                    Telegram
+                                </span>
+                                <span th:if="${draft.source.name() == 'MANUAL'}">Manual</span>
+                                <span th:if="${draft.source.name() == 'EMAIL'}">Email</span>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Tipe Struk</dt>
+                            <dd class="mt-1 text-sm text-gray-900" th:text="${draft.receiptType ?: '-'}">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Merchant</dt>
+                            <dd class="mt-1 text-sm text-gray-900 font-medium" th:text="${draft.merchantName ?: '-'}">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Tanggal Transaksi</dt>
+                            <dd class="mt-1 text-sm text-gray-900" th:text="${draft.transactionDate != null ? #temporals.format(draft.transactionDate, 'dd MMMM yyyy') : '-'}">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Jumlah</dt>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900" th:text="${draft.amount != null ? draft.amountFormatted : '-'}">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Referensi</dt>
+                            <dd class="mt-1 text-sm text-gray-900 font-mono" th:text="${draft.sourceReference ?: '-'}">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Dibuat</dt>
+                            <dd class="mt-1 text-sm text-gray-900" th:text="${#temporals.format(draft.createdAt, 'dd MMM yyyy HH:mm')}">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Dibuat Oleh</dt>
+                            <dd class="mt-1 text-sm text-gray-900" th:text="${draft.createdBy ?: '-'}">-</dd>
+                        </div>
+                    </dl>
+
+                    <!-- Confidence Scores -->
+                    <div th:if="${draft.overallConfidence != null}" class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-900 mb-3">Confidence Score</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <span class="w-24 text-sm text-gray-600">Overall</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-2 mr-3">
+                                    <style th:inline="text" th:attr="nonce=${cspNonce}">#conf-overall-[[${draft.id}]] { width: [[${draft.overallConfidence.multiply(100).intValue()}]]%; }</style>
+                                    <div th:id="'conf-overall-' + ${draft.id}"
+                                         th:classappend="${draft.overallConfidence.doubleValue() >= 0.8} ? 'bg-green-500' : (${draft.overallConfidence.doubleValue() >= 0.5} ? 'bg-yellow-500' : 'bg-red-500')"
+                                         class="h-2 rounded-full"></div>
+                                </div>
+                                <span class="text-sm font-medium" th:text="${draft.confidencePercentage}">80%</span>
+                            </div>
+                            <div th:if="${draft.merchantConfidence != null}" class="flex items-center">
+                                <span class="w-24 text-sm text-gray-600">Merchant</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-2 mr-3">
+                                    <style th:inline="text" th:attr="nonce=${cspNonce}">#conf-merchant-[[${draft.id}]] { width: [[${draft.merchantConfidence.multiply(100).intValue()}]]%; }</style>
+                                    <div th:id="'conf-merchant-' + ${draft.id}" class="h-2 rounded-full bg-blue-500"></div>
+                                </div>
+                                <span class="text-sm" th:text="${#numbers.formatPercent(draft.merchantConfidence.doubleValue(), 1, 0)}">80%</span>
+                            </div>
+                            <div th:if="${draft.amountConfidence != null}" class="flex items-center">
+                                <span class="w-24 text-sm text-gray-600">Jumlah</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-2 mr-3">
+                                    <style th:inline="text" th:attr="nonce=${cspNonce}">#conf-amount-[[${draft.id}]] { width: [[${draft.amountConfidence.multiply(100).intValue()}]]%; }</style>
+                                    <div th:id="'conf-amount-' + ${draft.id}" class="h-2 rounded-full bg-blue-500"></div>
+                                </div>
+                                <span class="text-sm" th:text="${#numbers.formatPercent(draft.amountConfidence.doubleValue(), 1, 0)}">80%</span>
+                            </div>
+                            <div th:if="${draft.dateConfidence != null}" class="flex items-center">
+                                <span class="w-24 text-sm text-gray-600">Tanggal</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-2 mr-3">
+                                    <style th:inline="text" th:attr="nonce=${cspNonce}">#conf-date-[[${draft.id}]] { width: [[${draft.dateConfidence.multiply(100).intValue()}]]%; }</style>
+                                    <div th:id="'conf-date-' + ${draft.id}" class="h-2 rounded-full bg-blue-500"></div>
+                                </div>
+                                <span class="text-sm" th:text="${#numbers.formatPercent(draft.dateConfidence.doubleValue(), 1, 0)}">80%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rejection Info -->
+                    <div th:if="${draft.status.name() == 'REJECTED'}" class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-sm font-medium text-red-800 mb-2">Alasan Penolakan</h3>
+                        <p class="text-sm text-gray-700" th:text="${draft.rejectionReason}">-</p>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Ditolak oleh <span th:text="${draft.processedBy}">user</span>
+                            pada <span th:text="${#temporals.format(draft.processedAt, 'dd MMM yyyy HH:mm')}">date</span>
+                        </p>
+                    </div>
+
+                    <!-- Approved Transaction Link -->
+                    <div th:if="${draft.status.name() == 'APPROVED' && draft.transaction != null}" class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-sm font-medium text-green-800 mb-2">Transaksi Terkait</h3>
+                        <a th:href="@{/transactions/{id}(id=${draft.transaction.id})}"
+                           class="inline-flex items-center text-primary-600 hover:text-primary-800">
+                            <span th:text="${draft.transaction.transactionNumber}">TRX-2024-0001</span>
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Raw OCR Text -->
+                <div th:if="${draft.rawOcrText != null}" class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Teks OCR</h2>
+                    <pre class="bg-gray-50 p-4 rounded-lg text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono max-h-64 overflow-y-auto" th:text="${draft.rawOcrText}">OCR text here...</pre>
+                </div>
+
+                <!-- Suggested Template Info -->
+                <div th:if="${draft.suggestedTemplate != null}" class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Template yang Disarankan</h2>
+                    <div class="space-y-2">
+                        <p class="text-sm">
+                            <span class="text-gray-500">Nama:</span>
+                            <span class="font-medium" th:text="${draft.suggestedTemplate.templateName}">Template</span>
+                        </p>
+                        <p class="text-sm">
+                            <span class="text-gray-500">Kategori:</span>
+                            <span th:text="${draft.suggestedTemplate.category.name()}">EXPENSE</span>
+                        </p>
+                        <a th:href="@{/templates/{id}(id=${draft.suggestedTemplate.id})}"
+                           class="inline-flex items-center text-sm text-primary-600 hover:text-primary-800 mt-2">
+                            Lihat Template
+                            <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

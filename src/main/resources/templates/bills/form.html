@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout(${bill.id != null} ? 'Edit Tagihan' : 'Tagihan Baru', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title th:text="${bill.id != null} ? 'Edit Tagihan' : 'Tagihan Baru'">Tagihan</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="${bill.id != null} ? 'Edit Tagihan' : 'Tagihan Baru'">Tagihan</h1>
+
+    <section class="max-w-4xl">
+        <!-- Breadcrumb -->
+        <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+            <a th:href="@{/bills}" class="hover:text-primary-600 transition-colors">Tagihan</a>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+            <span class="text-gray-900" th:text="${bill.id != null} ? 'Edit Tagihan' : 'Tagihan Baru'">Tagihan</span>
+        </nav>
+
+        <div class="bg-white rounded-lg shadow p-6" x-data="billForm">
+            <form th:action="${bill.id != null} ? @{/bills/{billNumber}(billNumber=${bill.billNumber})} : @{/bills/new}"
+                  th:object="${bill}"
+                  method="post" class="space-y-6">
+
+                <!-- Validation Errors -->
+                <div th:if="${#fields.hasErrors('*')}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-sm text-red-600 font-medium">Terdapat kesalahan:</p>
+                    <ul class="mt-2 text-sm text-red-600 list-disc list-inside">
+                        <li th:each="err : ${#fields.errors('*')}" th:text="${err}">Error</li>
+                    </ul>
+                </div>
+
+                <!-- Bill Number & Vendor -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="billNumber" class="block text-sm font-medium text-gray-700 mb-1">Nomor Tagihan</label>
+                        <input type="text" id="billNumber" th:field="*{billNumber}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 font-mono"
+                               placeholder="Auto-generated jika kosong">
+                        <p class="mt-1 text-xs text-gray-500">Kosongkan untuk nomor otomatis (format: BILL-YYYYMM-XXXX)</p>
+                    </div>
+                    <!-- Vendor (combobox) -->
+                    <div x-data="vendorPicker"
+                         th:data-initial-id="${bill.vendor != null ? bill.vendor.id : ''}"
+                         th:data-initial-label="${bill.vendorLabel}">
+                        <label for="vendorLabel" class="block text-sm font-medium text-gray-700 mb-1">Vendor *</label>
+                        <div class="relative">
+                            <input type="text" id="vendorLabel" name="vendorLabel" x-model="label"
+                                   @input.debounce.300ms="search()" @focus="focusPicker()" @click.away="open = false"
+                                   autocomplete="off"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="Ketik kode atau nama vendor..." required>
+                            <input type="hidden" name="vendor.id" :value="selectedId">
+                            <div x-show="open &amp;&amp; results.length > 0"
+                                 class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                <template x-for="v in results" :key="v.id">
+                                    <button type="button" @click="select(v)"
+                                            data-testid="vendor-picker-result"
+                                            class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                        <span class="font-medium" x-text="v.code"></span>
+                                        <span class="text-gray-500"> — </span>
+                                        <span x-text="v.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vendor Invoice Number & Dates -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label for="vendorInvoiceNumber" class="block text-sm font-medium text-gray-700 mb-1">No. Faktur Vendor</label>
+                        <input type="text" id="vendorInvoiceNumber" th:field="*{vendorInvoiceNumber}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               placeholder="Nomor dari vendor">
+                    </div>
+                    <div>
+                        <label for="billDate" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Tagihan *</label>
+                        <input type="date" id="billDate" th:field="*{billDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               required>
+                    </div>
+                    <div>
+                        <label for="dueDate" class="block text-sm font-medium text-gray-700 mb-1">Jatuh Tempo *</label>
+                        <input type="date" id="dueDate" th:field="*{dueDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                               required>
+                    </div>
+                </div>
+
+                <!-- Line Items -->
+                <div class="border-t pt-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-medium text-gray-900">Item Tagihan</h3>
+                        <button type="button" @click="addLine()"
+                                class="px-3 py-1 text-sm bg-primary-100 text-primary-700 rounded hover:bg-primary-200">
+                            + Tambah Item
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <template x-for="(line, index) in lines" :key="index">
+                            <div class="grid grid-cols-12 gap-2 items-start p-3 bg-gray-50 rounded-lg">
+                                <div class="col-span-4">
+                                    <label :for="'bill-lineDescription-' + index" class="block text-xs text-gray-500 mb-1">Deskripsi *</label>
+                                    <input type="text" :id="'bill-lineDescription-' + index" :name="'lineDescription'" x-model="line.description"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded text-sm" required>
+                                </div>
+                                <div class="col-span-2 relative">
+                                    <label :for="'bill-lineExpenseAccountLabel-' + index" class="block text-xs text-gray-500 mb-1">Akun Beban</label>
+                                    <input type="text" :id="'bill-lineExpenseAccountLabel-' + index"
+                                           x-model="line.expenseAccountLabel"
+                                           @input.debounce.300ms="searchExpenseAccounts(line)"
+                                           @focus="line.pickerOpen = true; searchExpenseAccounts(line)"
+                                           @click.away="line.pickerOpen = false"
+                                           autocomplete="off"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                                           placeholder="Ketik kode/nama...">
+                                    <input type="hidden" :name="'lineExpenseAccountId'" :value="line.expenseAccountId">
+                                    <div x-show="line.pickerOpen &amp;&amp; line.expenseAccountResults.length > 0"
+                                         class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-auto">
+                                        <template x-for="a in line.expenseAccountResults" :key="a.id">
+                                            <button type="button"
+                                                    @click="selectExpenseAccount(line, a)"
+                                                    data-testid="line-account-picker-result"
+                                                    class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                                <span class="font-medium" x-text="a.code"></span>
+                                                <span class="text-gray-500"> — </span>
+                                                <span x-text="a.name"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label :for="'bill-lineQuantity-' + index" class="block text-xs text-gray-500 mb-1">Qty</label>
+                                    <input type="number" :id="'bill-lineQuantity-' + index" :name="'lineQuantity'" x-model="line.quantity"
+                                           @input="calcLine(line)"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded text-sm" step="0.01" min="0">
+                                </div>
+                                <div class="col-span-2">
+                                    <label :for="'bill-lineUnitPrice-' + index" class="block text-xs text-gray-500 mb-1">Harga Satuan</label>
+                                    <input type="number" :id="'bill-lineUnitPrice-' + index" :name="'lineUnitPrice'" x-model="line.unitPrice"
+                                           @input="calcLine(line)"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded text-sm" step="1" min="0">
+                                </div>
+                                <div class="col-span-1">
+                                    <label :for="'bill-lineTaxRate-' + index" class="block text-xs text-gray-500 mb-1">PPN %</label>
+                                    <input type="number" :id="'bill-lineTaxRate-' + index" :name="'lineTaxRate'" x-model="line.taxRate"
+                                           @input="calcLine(line)"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded text-sm" step="0.01" min="0">
+                                </div>
+                                <div class="col-span-1">
+                                    <span class="block text-xs text-gray-500 mb-1">Jumlah</span>
+                                    <p class="px-3 py-2 text-sm font-medium" x-text="formatRp(line.amount)">0</p>
+                                </div>
+                                <div class="col-span-1 flex items-end pb-2">
+                                    <button type="button" @click="removeLine(index)"
+                                            class="p-2 text-red-500 hover:text-red-700" title="Hapus">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Totals -->
+                    <div class="mt-4 flex justify-end" x-show="lines.length > 0">
+                        <div class="w-64 space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Subtotal</span>
+                                <span class="font-medium" x-text="formatRp(subtotal())">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">PPN</span>
+                                <span class="font-medium" x-text="formatRp(totalTax())">Rp 0</span>
+                            </div>
+                            <div class="flex justify-between border-t pt-2">
+                                <span class="font-medium text-gray-900">Total</span>
+                                <span class="font-bold text-lg" x-text="formatRp(grandTotal())">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                    <textarea id="notes" th:field="*{notes}" rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                              placeholder="Catatan tambahan"></textarea>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t">
+                    <a th:href="@{/bills}"
+                       class="px-4 py-2 text-gray-600 hover:text-gray-900">Batal</a>
+                    <button id="btn-simpan" type="submit"
+                            class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            // CSP-compatible: Register Alpine component before Alpine processes the DOM
+            document.addEventListener('alpine:init', function() {
+                var existingLines = /*[[${bill.lines}]]*/ [];
+                Alpine.data('billForm', function() {
+                    function blankLine() {
+                        return {
+                            description: '',
+                            expenseAccountId: '',
+                            expenseAccountLabel: '',
+                            expenseAccountResults: [],
+                            pickerOpen: false,
+                            quantity: 1, unitPrice: 0, taxRate: '', amount: 0
+                        };
+                    }
+                    return {
+                        lines: existingLines.length > 0
+                            ? existingLines.map(function(l) {
+                                return {
+                                    description: l.description || '',
+                                    expenseAccountId: l.expenseAccountId || (l.expenseAccount ? l.expenseAccount.id : ''),
+                                    expenseAccountLabel: l.expenseAccountLabel || '',
+                                    expenseAccountResults: [],
+                                    pickerOpen: false,
+                                    quantity: l.quantity || 1,
+                                    unitPrice: l.unitPrice || 0,
+                                    taxRate: l.taxRate || '',
+                                    amount: l.amount || 0
+                                };
+                            })
+                            : [blankLine()],
+                        addLine: function() {
+                            this.lines.push(blankLine());
+                        },
+                        removeLine: function(index) {
+                            this.lines.splice(index, 1);
+                        },
+                        searchExpenseAccounts: function(line) {
+                            var q = encodeURIComponent(line.expenseAccountLabel || '');
+                            fetch('/accounts/search?q=' + q, { headers: { 'Accept': 'application/json' } })
+                                .then(function(r) { return r.ok ? r.json() : []; })
+                                .then(function(data) { line.expenseAccountResults = data; });
+                        },
+                        selectExpenseAccount: function(line, a) {
+                            line.expenseAccountId = a.id;
+                            line.expenseAccountLabel = a.code + ' - ' + a.name;
+                            line.expenseAccountResults = [];
+                            line.pickerOpen = false;
+                        },
+                        calcLine: function(line) {
+                            var qty = Number.parseFloat(line.quantity) || 0;
+                            var price = Number.parseFloat(line.unitPrice) || 0;
+                            line.amount = qty * price;
+                        },
+                        subtotal: function() {
+                            return this.lines.reduce(function(sum, l) { return sum + (Number.parseFloat(l.amount) || 0); }, 0);
+                        },
+                        totalTax: function() {
+                            return this.lines.reduce(function(sum, l) {
+                                var rate = Number.parseFloat(l.taxRate) || 0;
+                                return sum + ((Number.parseFloat(l.amount) || 0) * rate / 100);
+                            }, 0);
+                        },
+                        grandTotal: function() {
+                            return this.subtotal() + this.totalTax();
+                        },
+                        formatRp: function(val) {
+                            return 'Rp ' + Math.round(val).toLocaleString('id-ID');
+                        }
+                    };
+                });
+            });
+        </script>
+</body>
+</html>

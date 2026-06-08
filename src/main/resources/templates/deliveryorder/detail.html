@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Detail Delivery Order', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head><title>Detail Delivery Order</title></head>
+<body>
+<h1 id="page-title" th:text="${do_.doNumber}">DO-2026-001</h1>
+
+<section class="space-y-6 max-w-5xl">
+
+    <!-- Flash -->
+    <div th:if="${successMessage}"
+         class="flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+        <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"/>
+        </svg>
+        <span th:text="${successMessage}"></span>
+    </div>
+    <div th:if="${param.error}"
+         class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"
+         th:text="${param.error[0] == 'bast-not-signed' ? 'BAST belum ditandatangani. Tandatangani BAST terlebih dahulu sebelum mencetak.' : 'Terjadi kesalahan.'}">
+    </div>
+
+    <!-- Action Bar -->
+    <div class="flex items-center gap-3 flex-wrap">
+        <a th:href="@{/delivery-orders}" class="text-sm text-gray-500 hover:text-gray-700">← Kembali</a>
+        <div class="ml-auto flex gap-2 flex-wrap">
+
+            <!-- Kirim — hanya Draft -->
+            <button th:if="${do_.draft}"
+                    onclick="document.getElementById('modal-ship').showModal()"
+                    sec:authorize="hasAuthority('INVOICE_EDIT')"
+                    class="px-4 py-1.5 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors">
+                🚚 Tandai Dikirim
+            </button>
+
+            <!-- Terima — hanya Shipped -->
+            <button th:if="${do_.status.name() == 'SHIPPED'}"
+                    onclick="document.getElementById('modal-deliver').showModal()"
+                    sec:authorize="hasAuthority('INVOICE_EDIT')"
+                    class="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                ✓ Tandai Diterima
+            </button>
+
+            <!-- Tandatangani BAST — hanya Delivered -->
+            <button th:if="${do_.status.name() == 'DELIVERED'}"
+                    onclick="document.getElementById('modal-bast').showModal()"
+                    sec:authorize="hasAuthority('INVOICE_EDIT')"
+                    class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                📋 Tandatangani BAST
+            </button>
+
+            <!-- Cetak Surat Jalan -->
+            <a th:href="@{/delivery-orders/{id}/print(id=${do_.id})}" target="_blank"
+               class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                🖨 Cetak Surat Jalan
+            </a>
+
+            <!-- Cetak BAST — hanya jika sudah ada BAST -->
+            <a th:if="${do_.bastNumber != null}"
+               th:href="@{/delivery-orders/{id}/print-bast(id=${do_.id})}" target="_blank"
+               class="px-3 py-1.5 border border-blue-300 text-blue-700 rounded-lg text-sm hover:bg-blue-50 transition-colors">
+                📄 Cetak BAST
+            </a>
+
+            <!-- Batalkan — hanya Draft/Shipped -->
+            <button th:if="${do_.draft || do_.status.name() == 'SHIPPED'}"
+                    onclick="document.getElementById('modal-cancel').showModal()"
+                    sec:authorize="hasAuthority('INVOICE_EDIT')"
+                    class="px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors">
+                Batalkan
+            </button>
+        </div>
+    </div>
+
+    <!-- Status Timeline -->
+    <div class="bg-white rounded-lg shadow p-5">
+        <div class="flex items-center justify-between relative">
+            <!-- Progress line -->
+            <div class="absolute left-0 right-0 top-5 h-0.5 bg-gray-200 z-0"></div>
+            <div class="absolute left-0 top-5 h-0.5 bg-primary-500 z-0 transition-all"
+                 th:style="${
+                     do_.status.name() == 'DRAFT'       ? 'width: 0%'   :
+                     do_.status.name() == 'SHIPPED'     ? 'width: 33%'  :
+                     do_.status.name() == 'DELIVERED'   ? 'width: 66%'  :
+                     do_.status.name() == 'BAST_SIGNED' ? 'width: 100%' :
+                                                           'width: 0%'}"></div>
+
+            <!-- Step: Draft -->
+            <div class="flex flex-col items-center z-10">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                     th:classappend="${do_.status.name() != 'CANCELLED' ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-400'}">1</div>
+                <span class="text-xs mt-2 text-gray-600 font-medium">Dibuat</span>
+            </div>
+            <!-- Step: Shipped -->
+            <div class="flex flex-col items-center z-10">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                     th:classappend="${do_.status.name() == 'SHIPPED' || do_.status.name() == 'DELIVERED' || do_.status.name() == 'BAST_SIGNED' ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-400'}">2</div>
+                <span class="text-xs mt-2 text-gray-600 font-medium">Dikirim</span>
+                <span th:if="${do_.shippedBy != null}"
+                      class="text-xs text-gray-400" th:text="${do_.shippedBy}"></span>
+            </div>
+            <!-- Step: Delivered -->
+            <div class="flex flex-col items-center z-10">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                     th:classappend="${do_.status.name() == 'DELIVERED' || do_.status.name() == 'BAST_SIGNED' ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-400'}">3</div>
+                <span class="text-xs mt-2 text-gray-600 font-medium">Diterima</span>
+                <span th:if="${do_.receivedBy != null}"
+                      class="text-xs text-gray-400" th:text="${do_.receivedBy}"></span>
+            </div>
+            <!-- Step: BAST -->
+            <div class="flex flex-col items-center z-10">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                     th:classappend="${do_.status.name() == 'BAST_SIGNED' ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-400'}">4</div>
+                <span class="text-xs mt-2 text-gray-600 font-medium">BAST</span>
+                <span th:if="${do_.bastNumber != null}"
+                      class="text-xs text-gray-400 font-mono" th:text="${do_.bastNumber}"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Header -->
+    <div class="bg-white rounded-lg shadow p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="space-y-3">
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Nomor DO</p>
+                <p class="font-mono font-bold text-lg mt-0.5" th:text="${do_.doNumber}"></p>
+            </div>
+            <div th:if="${do_.salesOrder != null}">
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Sales Order</p>
+                <a th:href="@{/sales-orders/{id}(id=${do_.salesOrder.id})}"
+                   class="text-primary-600 hover:underline font-mono mt-0.5 block"
+                   th:text="${do_.salesOrder.soNumber}"></a>
+            </div>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Customer / Penerima</p>
+                <p class="font-semibold mt-0.5" th:text="${do_.client?.name}"></p>
+            </div>
+            <div th:if="${do_.deliveryAddress != null}">
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Alamat Kirim</p>
+                <p class="text-sm mt-0.5 whitespace-pre-line" th:text="${do_.deliveryAddress}"></p>
+            </div>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Tanggal Pengiriman</p>
+                <p class="mt-0.5" th:text="${#temporals.format(do_.deliveryDate, 'dd MMMM yyyy')}"></p>
+            </div>
+            <div th:if="${do_.trackingNo != null}">
+                <p class="text-xs text-gray-400 uppercase tracking-wide">No. Resi / Tracking</p>
+                <p class="font-mono mt-0.5" th:text="${do_.trackingNo}"></p>
+            </div>
+            <div th:if="${do_.bastSignedAt != null}">
+                <p class="text-xs text-gray-400 uppercase tracking-wide">Tgl BAST Ditandatangani</p>
+                <p class="mt-0.5" th:text="${#temporals.format(do_.bastSignedAt, 'dd MMMM yyyy')}"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daftar Item -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="font-semibold text-gray-800">Daftar Barang Terkirim</h2>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 w-8">#</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Deskripsi Barang</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 w-24">Qty</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 w-16">Sat</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Serial Number</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Catatan</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="line, stat : ${do_.lines}" class="hover:bg-gray-50">
+                <td class="px-4 py-3 text-gray-400" th:text="${stat.index + 1}"></td>
+                <td class="px-4 py-3">
+                    <p class="font-medium" th:text="${line.description}"></p>
+                    <p th:if="${line.product != null}"
+                       class="text-xs text-gray-400 mt-0.5"
+                       th:text="${line.product.code}"></p>
+                </td>
+                <td class="px-4 py-3 text-right font-mono"
+                    th:text="${#numbers.formatDecimal(line.quantity, 1, 2, 'COMMA')}"></td>
+                <td class="px-4 py-3 text-gray-500" th:text="${line.unit ?: '—'}"></td>
+                <td class="px-4 py-3 font-mono text-xs text-gray-600"
+                    th:text="${line.serialNumbers ?: '—'}"></td>
+                <td class="px-4 py-3 text-xs text-gray-500" th:text="${line.notes ?: '—'}"></td>
+            </tr>
+            <tr th:if="${do_.lines.empty}">
+                <td colspan="6" class="px-4 py-6 text-center text-gray-400">Belum ada item</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Catatan -->
+    <div th:if="${do_.notes != null && !do_.notes.isBlank()}"
+         class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-sm font-semibold text-gray-700 mb-2">Catatan</h3>
+        <p class="text-sm text-gray-600 whitespace-pre-line" th:text="${do_.notes}"></p>
+    </div>
+
+</section>
+
+<!-- Modal: Tandai Dikirim -->
+<dialog id="modal-ship" class="rounded-xl shadow-xl p-6 w-96 backdrop:bg-black/40">
+    <h3 class="font-semibold text-gray-800 mb-4">Tandai Sudah Dikirim</h3>
+    <form th:action="@{/delivery-orders/{id}/ship(id=${do_.id})}" method="post" class="space-y-3">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div>
+            <label class="block text-sm text-gray-700 mb-1">Ekspedisi / Kurir</label>
+            <input type="text" name="shippedBy" th:value="${do_.shippedBy}"
+                   placeholder="JNE, TIKI, Kendaraan Sendiri, dll."
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div>
+            <label class="block text-sm text-gray-700 mb-1">No. Resi / Tracking</label>
+            <input type="text" name="trackingNo" th:value="${do_.trackingNo}"
+                   placeholder="Nomor resi pengiriman"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono">
+        </div>
+        <div class="flex gap-2 justify-end pt-2">
+            <button type="button" onclick="document.getElementById('modal-ship').close()"
+                    class="px-4 py-2 border rounded-lg text-sm">Batal</button>
+            <button class="px-4 py-2 bg-yellow-500 text-white rounded-lg text-sm hover:bg-yellow-600">
+                Konfirmasi Dikirim
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal: Tandai Diterima -->
+<dialog id="modal-deliver" class="rounded-xl shadow-xl p-6 w-96 backdrop:bg-black/40">
+    <h3 class="font-semibold text-gray-800 mb-4">Tandai Sudah Diterima</h3>
+    <form th:action="@{/delivery-orders/{id}/deliver(id=${do_.id})}" method="post" class="space-y-3">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div>
+            <label class="block text-sm text-gray-700 mb-1">Diterima Oleh</label>
+            <input type="text" name="receivedBy" th:value="${do_.receivedBy}"
+                   placeholder="Nama penerima di lokasi customer"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div class="flex gap-2 justify-end pt-2">
+            <button type="button" onclick="document.getElementById('modal-deliver').close()"
+                    class="px-4 py-2 border rounded-lg text-sm">Batal</button>
+            <button class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
+                Konfirmasi Diterima
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal: Tandatangani BAST -->
+<dialog id="modal-bast" class="rounded-xl shadow-xl p-6 w-96 backdrop:bg-black/40">
+    <h3 class="font-semibold text-gray-800 mb-4">Tandatangani BAST</h3>
+    <p class="text-sm text-gray-600 mb-4">
+        BAST (Berita Acara Serah Terima) adalah dokumen yang menyatakan barang sudah diterima
+        dan disetujui oleh customer. Setelah ini, kamu bisa mencetak dokumen BAST.
+    </p>
+    <form th:action="@{/delivery-orders/{id}/sign-bast(id=${do_.id})}" method="post" class="space-y-3">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div>
+            <label class="block text-sm text-gray-700 mb-1">Nomor BAST <span class="text-red-500">*</span></label>
+            <input type="text" name="bastNumber"
+                   th:placeholder="'BAST/' + ${do_.doNumber} + '/2026'"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono"
+                   required>
+        </div>
+        <div>
+            <label class="block text-sm text-gray-700 mb-1">Tanggal BAST <span class="text-red-500">*</span></label>
+            <input type="date" name="bastDate"
+                   th:value="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                   required>
+        </div>
+        <div class="flex gap-2 justify-end pt-2">
+            <button type="button" onclick="document.getElementById('modal-bast').close()"
+                    class="px-4 py-2 border rounded-lg text-sm">Batal</button>
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                Simpan & Tandatangani
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal: Batalkan -->
+<dialog id="modal-cancel" class="rounded-xl shadow-xl p-6 w-80 backdrop:bg-black/40">
+    <h3 class="font-semibold text-gray-800 mb-2">Batalkan Delivery Order?</h3>
+    <p class="text-sm text-gray-600 mb-4">
+        DO <span class="font-mono font-medium" th:text="${do_.doNumber}"></span> akan dibatalkan
+        dan qty terkirim pada SO akan dikurangi.
+    </p>
+    <form th:action="@{/delivery-orders/{id}/cancel(id=${do_.id})}" method="post">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <div class="flex gap-2 justify-end">
+            <button type="button" onclick="document.getElementById('modal-cancel').close()"
+                    class="px-4 py-2 border rounded-lg text-sm">Tidak</button>
+            <button class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700">
+                Ya, Batalkan
+            </button>
+        </div>
+    </form>
+</dialog>
+
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'BAST ' + ${do_.bastNumber}">BAST</title>
+    <style th:attr="nonce=${cspNonce}">
+        @page { size: A4; margin: 20mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 11pt; line-height: 1.6; color: #1f2937; background: white;
+        }
+        .container { max-width: 210mm; margin: 0 auto; }
+
+        /* Kop Surat */
+        .kop { display: flex; align-items: center; gap: 5mm;
+               padding-bottom: 4mm; border-bottom: 3px double #1f2937; margin-bottom: 6mm; }
+        .kop-logo { max-height: 70px; max-width: 70px; }
+        .kop-text { flex: 1; }
+        .kop-company { font-size: 16pt; font-weight: 700; color: #1f2937; }
+        .kop-address { font-size: 9pt; color: #4b5563; margin-top: 1mm; }
+
+        /* Judul Dokumen */
+        .doc-title { text-align: center; margin-bottom: 6mm; }
+        .doc-title h1 { font-size: 16pt; font-weight: 700; text-decoration: underline;
+                        text-transform: uppercase; letter-spacing: 1px; }
+        .doc-title .doc-subtitle { font-size: 11pt; margin-top: 1mm; }
+        .doc-title .doc-number { font-size: 10pt; font-weight: 600; margin-top: 1mm;
+                                  font-family: 'Courier New', monospace; }
+
+        /* Body teks */
+        .body-text { margin-bottom: 4mm; text-align: justify; }
+        .body-text p { margin-bottom: 2mm; }
+
+        /* Info pihak */
+        .pihak { margin-bottom: 4mm; }
+        .pihak table { border: none; width: 100%; }
+        .pihak td { border: none; padding: 1mm 0; font-size: 10.5pt; vertical-align: top; }
+        .pihak td:first-child { width: 35%; color: #374151; }
+        .pihak td:nth-child(2) { width: 5%; text-align: center; }
+        .pihak td:nth-child(3) { font-weight: 600; }
+
+        /* Tabel Barang */
+        .section-title { font-size: 11pt; font-weight: 700; margin: 4mm 0 2mm;
+                         text-decoration: underline; }
+        table.items { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+        table.items th { background: #f3f4f6; border: 1px solid #6b7280; padding: 2mm 3mm;
+                         font-size: 9.5pt; text-align: center; }
+        table.items td { border: 1px solid #9ca3af; padding: 2mm 3mm; font-size: 9.5pt; vertical-align: top; }
+        table.items .text-right { text-align: right; }
+        table.items .text-center { text-align: center; }
+        table.items .font-mono { font-family: 'Courier New', monospace; font-size: 9pt; }
+
+        /* Pernyataan */
+        .statement { margin: 4mm 0; padding: 3mm 4mm;
+                     border: 1px solid #d1d5db; border-radius: 4px;
+                     background: #f9fafb; font-size: 10pt; text-align: justify; }
+
+        /* Tanda Tangan */
+        .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-top: 8mm; }
+        .signature-box { text-align: center; }
+        .signature-party { font-size: 10pt; font-weight: 700; text-transform: uppercase; }
+        .signature-company { font-size: 9.5pt; color: #4b5563; margin: 1mm 0; }
+        .signature-space { height: 22mm; border-bottom: 1px solid #374151; margin: 2mm 6mm; }
+        .signature-name { font-size: 10pt; font-weight: 700; margin-top: 1.5mm; }
+        .signature-title { font-size: 9pt; color: #4b5563; }
+        .signature-date { font-size: 9pt; color: #4b5563; margin-top: 1mm; }
+
+        /* Footer */
+        .footer { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid #e5e7eb;
+                  font-size: 8pt; color: #9ca3af; text-align: center; }
+
+        /* Print controls */
+        .print-controls { position: fixed; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 1000; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;
+               cursor: pointer; border: none; text-decoration: none; }
+        .btn-print { background: #1d4ed8; color: white; }
+        .btn-back { background: #f3f4f6; color: #374151; }
+        @media print {
+            .print-controls { display: none; }
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="print-controls">
+    <a th:href="${backUrl}" class="btn btn-back">← Kembali</a>
+    <button onclick="window.print()" class="btn btn-print">🖨 Cetak BAST</button>
+</div>
+
+<div class="container">
+
+    <!-- Kop Surat -->
+    <div class="kop">
+        <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+             th:src="@{${company.companyLogoPath}}" alt="Logo" class="kop-logo">
+        <div class="kop-text">
+            <div class="kop-company" th:text="${company.companyName}">PT Perusahaan</div>
+            <div class="kop-address">
+                <span th:text="${company.companyAddress}">Alamat</span><br>
+                Tel: <span th:text="${company.companyPhone}">021-xxx</span>
+                <span th:if="${company.companyEmail}"> | <span th:text="${company.companyEmail}"></span></span><br>
+                NPWP: <span th:text="${company.taxId}">00.000.000.0-000.000</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Judul -->
+    <div class="doc-title">
+        <h1>Berita Acara Serah Terima</h1>
+        <div class="doc-subtitle">Material / Barang</div>
+        <div class="doc-number" th:text="'Nomor: ' + ${do_.bastNumber}">Nomor: BAST/DO-2026-001/2026</div>
+    </div>
+
+    <!-- Pembuka -->
+    <div class="body-text">
+        <p>
+            Pada hari ini,
+            <strong th:text="${do_.bastSignedAt != null ? #temporals.format(do_.bastSignedAt, 'EEEE') : '___________'}">
+                Senin</strong>,
+            tanggal
+            <strong th:text="${do_.bastSignedAt != null ? #temporals.format(do_.bastSignedAt, 'dd MMMM yyyy') : '___ ___________ ____'}">
+                01 Januari 2026</strong>,
+            telah dilaksanakan serah terima barang/material antara:
+        </p>
+    </div>
+
+    <!-- Pihak Pertama (Pengirim) -->
+    <div class="pihak">
+        <p style="font-weight:700;margin-bottom:1mm;">Pihak Pertama (Pengirim):</p>
+        <table>
+            <tr>
+                <td>Nama Perusahaan</td>
+                <td>:</td>
+                <td th:text="${company.companyName}">PT Pengirim</td>
+            </tr>
+            <tr>
+                <td>Alamat</td>
+                <td>:</td>
+                <td th:text="${company.companyAddress}">Alamat perusahaan</td>
+            </tr>
+            <tr>
+                <td>NPWP</td>
+                <td>:</td>
+                <td th:text="${company.taxId}">00.000.000.0-000.000</td>
+            </tr>
+            <tr>
+                <td>Referensi Dokumen</td>
+                <td>:</td>
+                <td>
+                    <span th:text="${do_.doNumber}">DO-2026-001</span>
+                    <span th:if="${do_.salesOrder != null}"
+                          th:text="' / ' + ${do_.salesOrder.soNumber}"></span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Pihak Kedua (Penerima) -->
+    <div class="pihak">
+        <p style="font-weight:700;margin-bottom:1mm;">Pihak Kedua (Penerima):</p>
+        <table>
+            <tr>
+                <td>Nama Perusahaan</td>
+                <td>:</td>
+                <td th:text="${do_.client?.name}">PT Penerima</td>
+            </tr>
+            <tr>
+                <td>Alamat</td>
+                <td>:</td>
+                <td>
+                    <span th:text="${do_.deliveryAddress ?: (do_.client?.address ?: '—')}">Alamat penerima</span>
+                </td>
+            </tr>
+            <tr th:if="${do_.receivedBy != null}">
+                <td>Diterima Oleh</td>
+                <td>:</td>
+                <td th:text="${do_.receivedBy}">Nama Penerima</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Daftar Barang -->
+    <p class="section-title">Daftar Barang yang Diserahterimakan:</p>
+    <table class="items">
+        <thead>
+        <tr>
+            <th style="width:5%">No</th>
+            <th style="width:38%">Deskripsi Barang / Material</th>
+            <th style="width:10%">Qty</th>
+            <th style="width:7%">Sat</th>
+            <th style="width:25%">Serial Number / Kode Barang</th>
+            <th style="width:15%">Keterangan</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="line, stat : ${do_.lines}">
+            <td class="text-center" th:text="${stat.index + 1}"></td>
+            <td>
+                <strong th:text="${line.description}"></strong>
+                <span th:if="${line.product != null}"
+                      style="display:block;font-size:8.5pt;color:#6b7280;"
+                      th:text="${line.product.code}"></span>
+            </td>
+            <td class="text-right font-mono"
+                th:text="${#numbers.formatDecimal(line.quantity, 1, 2, 'COMMA')}"></td>
+            <td class="text-center" th:text="${line.unit ?: ''}"></td>
+            <td class="font-mono" th:text="${line.serialNumbers ?: '—'}"></td>
+            <td style="font-size:8.5pt;" th:text="${line.notes ?: ''}"></td>
+        </tr>
+        <!-- Empty rows -->
+        <tr th:if="${do_.lines.size() < 4}"
+            th:each="i : ${#numbers.sequence(do_.lines.size(), 3)}">
+            <td style="height:8mm;"></td>
+            <td></td><td></td><td></td><td></td><td></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Pernyataan -->
+    <div class="statement">
+        Dengan ditandatanganinya Berita Acara Serah Terima ini, Pihak Kedua menyatakan bahwa
+        seluruh barang/material tersebut di atas telah diterima dalam kondisi baik, lengkap,
+        dan sesuai dengan spesifikasi yang diperjanjikan. Pihak Kedua bertanggung jawab atas
+        penyimpanan dan penggunaan barang tersebut terhitung sejak tanggal penandatanganan
+        berita acara ini.
+    </div>
+
+    <!-- Catatan jika ada -->
+    <div th:if="${do_.notes != null && !do_.notes.isBlank()}"
+         style="margin-bottom:4mm;font-size:9.5pt;">
+        <strong>Catatan:</strong> <span th:text="${do_.notes}"></span>
+    </div>
+
+    <!-- Tanda Tangan -->
+    <div class="signature-section">
+        <!-- Pihak Pertama -->
+        <div class="signature-box">
+            <div class="signature-party">Pihak Pertama</div>
+            <div class="signature-company" th:text="${company.companyName}"></div>
+            <div class="signature-space"></div>
+            <div class="signature-name">( _____________________________ )</div>
+            <div class="signature-title">Nama Terang &amp; Jabatan</div>
+            <div class="signature-date">
+                Tanggal:
+                <span th:text="${do_.bastSignedAt != null
+                    ? #temporals.format(do_.bastSignedAt, 'dd MMMM yyyy') : '___ ___________ ____'}"></span>
+            </div>
+        </div>
+
+        <!-- Pihak Kedua -->
+        <div class="signature-box">
+            <div class="signature-party">Pihak Kedua</div>
+            <div class="signature-company" th:text="${do_.client?.name}"></div>
+            <div class="signature-space"></div>
+            <div class="signature-name">
+                <span th:if="${do_.receivedBy != null}"
+                      th:text="'( ' + ${do_.receivedBy} + ' )'">( _____________________ )</span>
+                <span th:if="${do_.receivedBy == null}">( _____________________________ )</span>
+            </div>
+            <div class="signature-title">Nama Terang, Jabatan &amp; Stempel</div>
+            <div class="signature-date">
+                Tanggal:
+                <span th:text="${do_.bastSignedAt != null
+                    ? #temporals.format(do_.bastSignedAt, 'dd MMMM yyyy') : '___ ___________ ____'}"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>
+            Dokumen ini dibuat dalam rangkap 2 (dua) dan masing-masing pihak memegang 1 (satu) lembar asli yang mempunyai kekuatan hukum yang sama.
+        </p>
+        <p style="margin-top:2mm;">
+            Dicetak oleh:
+            <span th:text="${company.companyName}"></span>
+            pada <span th:text="${#temporals.format(#temporals.createNow(), 'dd MMMM yyyy HH:mm')}"></span>
+            | Nomor BAST: <span th:text="${do_.bastNumber}"></span>
+        </p>
+    </div>
+
+</div>
+</body>
+</html>
