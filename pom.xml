@@ -104,6 +104,24 @@
 			<artifactId>google-cloud-vision</artifactId>
 			<version>3.78.0</version>
 		</dependency>
+		<!-- Tesseract 4 OCR for local text recognition -->
+		<dependency>
+			<groupId>net.sourceforge.tess4j</groupId>
+			<artifactId>tess4j</artifactId>
+			<version>5.12.0</version>
+		</dependency>
+		<!-- Image processing for OCR preprocessing -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-imaging</artifactId>
+			<version>1.0.0-alpha3</version>
+		</dependency>
+		<!-- Image manipulation -->
+		<dependency>
+			<groupId>net.coobird</groupId>
+			<artifactId>thumbnailator</artifactId>
+			<version>0.4.20</version>
+		</dependency>
 		<!-- Telegram Bot API: Using custom DTOs and Spring HTTP Interface instead of telegrambots-client -->
 
 		<dependency>
