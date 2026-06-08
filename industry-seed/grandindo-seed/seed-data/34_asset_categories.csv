@@ -1,0 +1,6 @@
+category_name,description,depreciation_method,useful_life_years,salvage_value_percentage,active
+Kendaraan Operasional,Kendaraan operasional kantor dan pengiriman (mobil pickup/truk/motor),STRAIGHT_LINE,8,10,true
+Komputer & Laptop,Komputer desktop laptop printer dan perangkat IT,STRAIGHT_LINE,4,0,true
+Peralatan Workshop,Peralatan bengkel dan workshop untuk fabrikasi panel,STRAIGHT_LINE,8,10,true
+Peralatan Ukur & Testing,Alat ukur dan testing seperti multimeter megger analyzer dll,STRAIGHT_LINE,5,5,true
+Furniture & Inventaris,Furniture meja kursi lemari filing cabinet dan inventaris kantor,STRAIGHT_LINE,8,0,true

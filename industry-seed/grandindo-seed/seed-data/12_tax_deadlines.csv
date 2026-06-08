@@ -1,0 +1,11 @@
+tax_type,description,due_day,due_month_offset,frequency,reminder_days_before,active
+PPH21,Setor PPh Pasal 21 - Gaji Karyawan,10,1,MONTHLY,7,true
+PPH21_SPT,Lapor SPT Masa PPh 21,20,1,MONTHLY,7,true
+PPH23,Setor PPh Pasal 23 - Jasa Pihak Ketiga,10,1,MONTHLY,7,true
+PPH23_SPT,Lapor SPT Masa PPh 23,20,1,MONTHLY,7,true
+PPN,Setor PPN Masa (Kurang Bayar),15,1,MONTHLY,10,true
+PPN_SPT,Lapor SPT Masa PPN,31,1,MONTHLY,7,true
+PPH25,Setor PPh Pasal 25 - Angsuran Bulanan,15,1,MONTHLY,7,true
+PPH4_2,Setor PPh Pasal 4 Ayat 2 - Sewa,10,1,MONTHLY,7,true
+PPH_BADAN,Bayar PPh Badan Kurang Bayar (SPT Tahunan),30,4,YEARLY,30,true
+SPT_TAHUNAN,Lapor SPT Tahunan Badan,30,4,YEARLY,30,true

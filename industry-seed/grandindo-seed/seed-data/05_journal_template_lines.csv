@@ -1,0 +1,79 @@
+template_name,line_order,account_code,account_hint,position,formula,description
+Setoran Modal,1,1.1.03,,DEBIT,amount,Penerimaan di Bank
+Setoran Modal,2,3.1.01,,CREDIT,amount,Modal disetor pemilik
+Terima Uang Muka Pelanggan,1,1.1.03,,DEBIT,amount,Penerimaan uang muka di bank
+Terima Uang Muka Pelanggan,2,2.1.10,,CREDIT,amount,Kewajiban uang muka pelanggan
+Realisasi Pendapatan - Material,1,1.1.10,,DEBIT,revenueAmount,Piutang usaha atas penjualan material
+Realisasi Pendapatan - Material,2,2.1.20,,CREDIT,ppnAmount,PPN Keluaran 11%
+Realisasi Pendapatan - Material,3,4.1.01,,CREDIT,revenueAmount,Pendapatan penjualan material
+Realisasi Pendapatan - Material,4,5.1.01,,DEBIT,cogsAmount,HPP - material terjual
+Realisasi Pendapatan - Material,5,1.1.20,,CREDIT,cogsAmount,Persediaan barang dagang keluar
+Realisasi Pendapatan - Jasa,1,1.1.10,,DEBIT,amount,Piutang usaha atas jasa
+Realisasi Pendapatan - Jasa,2,2.1.20,,CREDIT,ppnAmount,PPN Keluaran 11%
+Realisasi Pendapatan - Jasa,3,4.1.10,,CREDIT,amount,Pendapatan jasa instalasi/engineering
+Realisasi Pendapatan - Proyek EPC,1,1.1.10,,DEBIT,revenueAmount,Piutang proyek
+Realisasi Pendapatan - Proyek EPC,2,2.1.20,,CREDIT,ppnAmount,PPN Keluaran 11%
+Realisasi Pendapatan - Proyek EPC,3,4.1.20,,CREDIT,revenueAmount,Pendapatan proyek EPC
+Realisasi Pendapatan - Proyek EPC,4,5.2.01,,DEBIT,cogsAmount,Biaya proyek langsung
+Realisasi Pendapatan - Proyek EPC,5,1.1.21,,CREDIT,cogsAmount,Persediaan material proyek keluar
+Kembalikan Uang Muka ke Pendapatan,1,2.1.10,,DEBIT,amount,Mengurangi kewajiban uang muka
+Kembalikan Uang Muka ke Pendapatan,2,1.1.10,,CREDIT,amount,Offset ke piutang usaha
+Terima Pembayaran Piutang,1,1.1.03,,DEBIT,amount,Penerimaan di bank
+Terima Pembayaran Piutang,2,1.1.10,,CREDIT,amount,Pelunasan piutang usaha
+Terima Pembayaran Retensi,1,1.1.03,,DEBIT,amount,Penerimaan retensi di bank
+Terima Pembayaran Retensi,2,1.1.11,,CREDIT,amount,Pelunasan piutang retensi
+Pembelian Material - Tunai,1,1.1.20,,DEBIT,amount,Persediaan barang dagang masuk
+Pembelian Material - Tunai,2,1.1.40,,DEBIT,ppnAmount,PPN Masukan
+Pembelian Material - Tunai,3,1.1.03,,CREDIT,amount,Pembayaran dari bank
+Pembelian Material - Kredit,1,1.1.20,,DEBIT,amount,Persediaan barang dagang masuk
+Pembelian Material - Kredit,2,1.1.40,,DEBIT,ppnAmount,PPN Masukan
+Pembelian Material - Kredit,3,2.1.01,,CREDIT,amount,Hutang usaha ke supplier
+Bayar Uang Muka ke Supplier,1,1.1.30,,DEBIT,amount,Uang muka supplier
+Bayar Uang Muka ke Supplier,2,1.1.03,,CREDIT,amount,Pembayaran dari bank
+Realisasi Uang Muka Supplier,1,2.1.01,,DEBIT,amount,Mengurangi hutang usaha
+Realisasi Uang Muka Supplier,2,1.1.30,,CREDIT,amount,Realisasi uang muka supplier
+Bayar Hutang Supplier,1,2.1.01,,DEBIT,amount,Pelunasan hutang usaha
+Bayar Hutang Supplier,2,1.1.03,,CREDIT,amount,Pembayaran dari bank
+Biaya Proyek Langsung,1,5.2.02,,DEBIT,amount,Biaya tenaga kerja/subkon proyek
+Biaya Proyek Langsung,2,1.1.03,,CREDIT,amount,Pembayaran dari bank
+Biaya Tender,1,6.1.01,,DEBIT,amount,Biaya tender & estimasi
+Biaya Tender,2,1.1.03,,CREDIT,amount,Pembayaran dari bank
+Bayar Gaji,1,6.2.01,,DEBIT,amount,Beban gaji karyawan
+Bayar Gaji,2,1.1.03,,CREDIT,amount,Transfer gaji dari bank
+Post Gaji Bulanan,1,6.2.01,,DEBIT,grossSalary,Beban gaji bruto
+Post Gaji Bulanan,2,6.2.02,,DEBIT,companyBpjsKes,Beban BPJS Kesehatan perusahaan
+Post Gaji Bulanan,3,6.2.03,,DEBIT,companyBpjsTk,Beban BPJS Ketenagakerjaan perusahaan
+Post Gaji Bulanan,4,2.1.30,,CREDIT,netPay,Hutang gaji karyawan
+Post Gaji Bulanan,5,2.1.31,,CREDIT,totalBpjsKes,Hutang BPJS Kesehatan
+Post Gaji Bulanan,6,2.1.32,,CREDIT,totalBpjsTk,Hutang BPJS Ketenagakerjaan
+Post Gaji Bulanan,7,2.1.21,,CREDIT,pph21,Hutang PPh 21
+Bayar Hutang Gaji,1,2.1.30,,DEBIT,amount,Pelunasan hutang gaji
+Bayar Hutang Gaji,2,1.1.03,,CREDIT,amount,Transfer dari bank
+Bayar Hutang BPJS,1,2.1.31,,DEBIT,bpjsKes,Hutang BPJS Kesehatan
+Bayar Hutang BPJS,2,2.1.32,,DEBIT,bpjsTk,Hutang BPJS Ketenagakerjaan
+Bayar Hutang BPJS,3,1.1.03,,CREDIT,amount,Pembayaran dari bank
+Setor PPh 21,1,2.1.21,,DEBIT,amount,Hutang PPh 21
+Setor PPh 21,2,1.1.03,,CREDIT,amount,Setor ke kas negara
+Setor PPN,1,2.1.20,,DEBIT,ppnKeluaran,PPN Keluaran
+Setor PPN,2,1.1.40,,CREDIT,ppnMasukan,PPN Masukan
+Setor PPN,3,1.1.03,,CREDIT,ppnKurangBayar,Setor PPN Kurang Bayar
+Setor PPh 23,1,2.1.22,,DEBIT,amount,Hutang PPh 23
+Setor PPh 23,2,1.1.03,,CREDIT,amount,Setor ke kas negara
+Bayar Sewa Kantor,1,6.2.04,,DEBIT,amount,Beban sewa
+Bayar Sewa Kantor,2,1.1.03,,CREDIT,amount,Pembayaran dari bank
+Bayar Listrik & Air,1,6.2.05,,DEBIT,amount,Beban listrik & air
+Bayar Listrik & Air,2,1.1.03,,CREDIT,amount,Pembayaran dari bank
+Beban Admin Bank,1,6.2.08,,DEBIT,amount,Beban administrasi bank
+Beban Admin Bank,2,1.1.03,,CREDIT,amount,Potongan dari bank
+Transfer Antar Bank,1,1.1.04,,DEBIT,amount,Bank tujuan
+Transfer Antar Bank,2,1.1.03,,CREDIT,amount,Bank asal
+Pembelian Persediaan,1,,PERSEDIAAN,DEBIT,amount,Persediaan masuk
+Pembelian Persediaan,2,1.1.03,,CREDIT,amount,Pembayaran dari bank
+Penjualan Persediaan,1,1.1.10,,DEBIT,revenueAmount,Piutang usaha
+Penjualan Persediaan,2,,PENDAPATAN,CREDIT,revenueAmount,Pendapatan penjualan
+Penjualan Persediaan,3,,HPP,DEBIT,cogsAmount,Harga pokok penjualan
+Penjualan Persediaan,4,,PERSEDIAAN,CREDIT,cogsAmount,Persediaan keluar
+Penyesuaian Persediaan Masuk,1,,PERSEDIAAN,DEBIT,amount,Persediaan bertambah
+Penyesuaian Persediaan Masuk,2,6.2.01,,CREDIT,amount,Penyesuaian persediaan
+Penyesuaian Persediaan Keluar,1,6.2.01,,DEBIT,amount,Kerugian persediaan
+Penyesuaian Persediaan Keluar,2,,PERSEDIAAN,CREDIT,amount,Persediaan berkurang

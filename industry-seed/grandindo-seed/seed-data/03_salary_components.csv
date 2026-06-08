@@ -1,0 +1,21 @@
+code,name,description,component_type,is_percentage,default_rate,default_amount,is_system,display_order,active,is_taxable,bpjs_category
+GAPOK,Gaji Pokok,Gaji pokok bulanan karyawan,EARNING,false,,,true,10,true,true,
+TJ-POSISI,Tunjangan Jabatan,Tunjangan berdasarkan posisi/jabatan,EARNING,false,,,false,20,true,true,
+TJ-TRANS,Tunjangan Transportasi,Tunjangan transportasi harian,EARNING,false,,500000,false,30,true,true,
+TJ-MAKAN,Tunjangan Makan,Tunjangan makan harian,EARNING,false,,600000,false,40,true,true,
+TJ-PROYEK,Tunjangan Lapangan/Proyek,Tunjangan selama penugasan di lapangan,EARNING,false,,,false,50,true,true,
+TJ-KOMUNIKASI,Tunjangan Komunikasi,Tunjangan pulsa dan komunikasi,EARNING,false,,300000,false,60,true,false,
+TJ-SERTIFIKASI,Tunjangan Sertifikasi,Tunjangan untuk karyawan bersertifikasi (K3/SKA/dll),EARNING,false,,,false,70,true,true,
+OT-1.5,Lembur 1.5x,Upah lembur hari kerja (1.5x gaji per jam),EARNING,true,150,,false,80,true,true,
+OT-2,Lembur 2x,Upah lembur hari libur (2x gaji per jam),EARNING,true,200,,false,90,true,true,
+BONUS,Bonus Kinerja,Bonus berdasarkan kinerja dan keuntungan proyek,EARNING,false,,,false,100,true,true,
+THR,Tunjangan Hari Raya,THR tahunan sesuai peraturan ketenagakerjaan,EARNING,false,,,false,110,true,true,
+BPJS-KES-TK,BPJS Kesehatan (Karyawan),Iuran BPJS Kesehatan ditanggung karyawan 1%,DEDUCTION,true,1,,true,200,true,false,BPJS_KES
+BPJS-TK-JHT-TK,BPJS JHT (Karyawan),Iuran JHT ditanggung karyawan 2%,DEDUCTION,true,2,,true,210,true,false,BPJS_JHT
+BPJS-TK-JP-TK,BPJS JP (Karyawan),Iuran JP ditanggung karyawan 1%,DEDUCTION,true,1,,true,220,true,false,BPJS_JP
+PPH21,PPh Pasal 21,Pajak penghasilan karyawan dipotong perusahaan,DEDUCTION,false,,,true,230,false,false,
+BPJS-KES-CO,BPJS Kesehatan (Perusahaan),Iuran BPJS Kesehatan ditanggung perusahaan 4%,EMPLOYER,true,4,,true,300,false,false,BPJS_KES
+BPJS-TK-JKK,BPJS JKK (Perusahaan),Iuran Jaminan Kecelakaan Kerja perusahaan 0.24%,EMPLOYER,true,0.24,,true,310,false,false,BPJS_JKK
+BPJS-TK-JKM,BPJS JKM (Perusahaan),Iuran Jaminan Kematian perusahaan 0.3%,EMPLOYER,true,0.3,,true,320,false,false,BPJS_JKM
+BPJS-TK-JHT-CO,BPJS JHT (Perusahaan),Iuran JHT ditanggung perusahaan 3.7%,EMPLOYER,true,3.7,,true,330,false,false,BPJS_JHT
+BPJS-TK-JP-CO,BPJS JP (Perusahaan),Iuran JP ditanggung perusahaan 2%,EMPLOYER,true,2,,true,340,false,false,BPJS_JP
