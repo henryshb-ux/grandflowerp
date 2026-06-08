@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Detail Transaksi', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title>Detail Transaksi</title>
+</head>
+<body>
+    <h1 id="page-title">Detail Transaksi</h1>
+
+    <section id="transaction-detail-content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-4xl">
+            <!-- Success Message -->
+            <div th:if="${successMessage}" class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span class="text-sm font-medium text-green-800" th:text="${successMessage}">Success</span>
+                </div>
+            </div>
+
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/transactions}" class="hover:text-primary-600 transition-colors">Transaksi</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span id="transaction-number" class="text-gray-900" th:text="${transaction.transactionNumber}">TRX-2025-0001</span>
+            </nav>
+
+            <!-- Status Banner -->
+            <div class="mb-6 p-4 rounded-lg border"
+                 th:classappend="${transaction.status.name() == 'DRAFT'} ? 'bg-amber-50 border-amber-200' : (${transaction.status.name() == 'POSTED'} ? 'bg-accent-50 border-accent-200' : 'bg-red-50 border-red-200')">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <span th:classappend="${transaction.status.name() == 'DRAFT'} ? 'bg-amber-100' : (${transaction.status.name() == 'POSTED'} ? 'bg-accent-100' : 'bg-red-100')"
+                                  class="inline-flex items-center justify-center w-10 h-10 rounded-full">
+                                <!-- Draft Icon -->
+                                <svg th:if="${transaction.status.name() == 'DRAFT'}" class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                <!-- Posted Icon -->
+                                <svg th:if="${transaction.status.name() == 'POSTED'}" class="w-5 h-5 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <!-- Void Icon -->
+                                <svg th:if="${transaction.status.name() == 'VOID'}" class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="ml-3">
+                            <!-- Draft Status -->
+                            <th:block th:if="${transaction.status.name() == 'DRAFT'}">
+                                <h3 data-testid="status-draft" class="text-sm font-semibold text-amber-800">Transaksi dalam Draft</h3>
+                                <p class="text-xs text-amber-600 mt-0.5">
+                                    Dibuat pada <span th:text="${#temporals.format(transaction.createdAt, 'd MMMM yyyy, HH:mm')} + ' WIB'">22 November 2025, 14:20 WIB</span>
+                                </p>
+                            </th:block>
+                            <!-- Posted Status -->
+                            <th:block th:if="${transaction.status.name() == 'POSTED'}">
+                                <h3 data-testid="status-posted" class="text-sm font-semibold text-accent-800">Transaksi Berhasil Diposting</h3>
+                                <p class="text-xs text-accent-600 mt-0.5">
+                                    Diposting pada <span th:text="${#temporals.format(transaction.postedAt, 'd MMMM yyyy, HH:mm')} + ' WIB oleh ' + ${transaction.postedBy}">22 November 2025, 14:30 WIB oleh admin</span>
+                                </p>
+                            </th:block>
+                            <!-- Void Status -->
+                            <th:block th:if="${transaction.status.name() == 'VOID'}">
+                                <h3 data-testid="status-void" class="text-sm font-semibold text-red-800">Transaksi Di-void</h3>
+                                <p class="text-xs text-red-600 mt-0.5">
+                                    Di-void pada <span th:text="${#temporals.format(transaction.voidedAt, 'd MMMM yyyy, HH:mm')} + ' WIB oleh ' + ${transaction.voidedBy}">22 November 2025, 14:30 WIB oleh admin</span>
+                                </p>
+                                <p th:if="${transaction.voidReason != null}" class="text-xs text-red-600 mt-0.5">
+                                    Alasan: <span th:text="${transaction.voidReason.indonesianName}">Input Error</span>
+                                    <span th:if="${transaction.voidNotes != null}">- <span th:text="${transaction.voidNotes}">Notes</span></span>
+                                </p>
+                            </th:block>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- Print Button -->
+                        <button class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Cetak
+                        </button>
+                        <!-- Edit Button (Draft only) -->
+                        <a th:if="${transaction.status.name() == 'DRAFT'}"
+                           th:href="@{/transactions/{id}/edit(id=${transaction.id})}"
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Edit
+                        </a>
+                        <!-- Post Button (Draft only, requires TRANSACTION_POST permission) -->
+                        <button th:if="${transaction.status.name() == 'DRAFT'}"
+                                sec:authorize="hasAuthority('TRANSACTION_POST')"
+                                id="btn-post"
+                                th:data-id="${transaction.id}"
+                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-accent-700 bg-accent-50 border border-accent-200 rounded-lg hover:bg-accent-100 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Posting
+                        </button>
+                        <!-- Delete Button (Draft only) -->
+                        <button th:if="${transaction.status.name() == 'DRAFT'}"
+                                id="btn-delete"
+                                th:data-id="${transaction.id}"
+                                class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            Hapus
+                        </button>
+                        <!-- Void Button (Posted only) -->
+                        <a th:if="${transaction.status.name() == 'POSTED'}"
+                           th:href="@{/transactions/{id}/void(id=${transaction.id})}"
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                            </svg>
+                            Void Transaksi
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Header Card -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="p-6">
+                    <div class="flex items-start justify-between mb-6">
+                        <div>
+                            <h2 th:classappend="${transaction.status.name() == 'VOID'} ? 'line-through'"
+                                class="text-xl font-bold text-gray-900" th:text="${transaction.transactionNumber}">TRX-2025-0001</h2>
+                            <p th:classappend="${transaction.status.name() == 'VOID'} ? 'line-through'"
+                               class="text-sm text-gray-500 mt-1" th:text="${transaction.description}">Description</p>
+                        </div>
+                        <div class="text-right">
+                            <p th:classappend="${transaction.status.name() == 'VOID'} ? 'text-gray-400 line-through' : (${transaction.journalTemplate?.category?.name() == 'INCOME' or transaction.journalTemplate?.category?.name() == 'RECEIPT'} ? 'text-green-600' : (${transaction.journalTemplate?.category?.name() == 'EXPENSE' or transaction.journalTemplate?.category?.name() == 'PAYMENT'} ? 'text-red-600' : 'text-gray-900'))"
+                               class="text-2xl font-bold">
+                                <span th:if="${transaction.journalTemplate?.category?.name() == 'INCOME' or transaction.journalTemplate?.category?.name() == 'RECEIPT'}">+ </span>
+                                <span th:if="${transaction.journalTemplate?.category?.name() == 'EXPENSE' or transaction.journalTemplate?.category?.name() == 'PAYMENT'}">- </span>
+                                <span th:text="'Rp ' + ${#numbers.formatDecimal(transaction.amount, 0, 'POINT', 0, 'COMMA')}">Rp 0</span>
+                            </p>
+                            <span id="transaction-status"
+                                  th:classappend="${transaction.journalTemplate?.category?.name() == 'INCOME'} ? 'bg-green-100 text-green-800' : (${transaction.journalTemplate?.category?.name() == 'EXPENSE'} ? 'bg-red-100 text-red-800' : (${transaction.journalTemplate?.category?.name() == 'TRANSFER'} ? 'bg-purple-100 text-purple-800' : (${transaction.journalTemplate?.category?.name() == 'PAYMENT'} ? 'bg-blue-100 text-blue-800' : 'bg-cyan-100 text-cyan-800')))"
+                                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2">
+                                <span th:classappend="${transaction.journalTemplate?.category?.name() == 'INCOME'} ? 'bg-green-500' : (${transaction.journalTemplate?.category?.name() == 'EXPENSE'} ? 'bg-red-500' : (${transaction.journalTemplate?.category?.name() == 'TRANSFER'} ? 'bg-purple-500' : (${transaction.journalTemplate?.category?.name() == 'PAYMENT'} ? 'bg-blue-500' : 'bg-cyan-500')))"
+                                      class="w-1.5 h-1.5 rounded-full mr-1.5"></span>
+                                <span th:text="${transaction.journalTemplate?.category?.name() == 'INCOME'} ? 'Pendapatan' : (${transaction.journalTemplate?.category?.name() == 'EXPENSE'} ? 'Pengeluaran' : (${transaction.journalTemplate?.category?.name() == 'PAYMENT'} ? 'Pembayaran' : (${transaction.journalTemplate?.category?.name() == 'RECEIPT'} ? 'Penerimaan' : 'Transfer')))">Category</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</p>
+                            <p class="text-sm text-gray-900 mt-1" th:text="${#temporals.format(transaction.transactionDate, 'd MMMM yyyy')}">22 November 2025</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">No. Referensi</p>
+                            <p class="text-sm text-gray-900 mt-1" th:text="${transaction.referenceNumber ?: '-'}">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</p>
+                            <span th:classappend="${transaction.status.name() == 'DRAFT'} ? 'bg-amber-100 text-amber-800' : (${transaction.status.name() == 'POSTED'} ? 'bg-accent-100 text-accent-800' : 'bg-red-100 text-red-800')"
+                                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1"
+                                  th:text="${transaction.status.name()}">Status</span>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Arus Kas</p>
+                            <p class="text-sm text-gray-900 mt-1" th:text="${transaction.journalTemplate?.cashFlowCategory?.indonesianName ?: '-'}">Aktivitas Operasional</p>
+                        </div>
+                    </div>
+
+                    <!-- Journal Template Info -->
+                    <div th:if="${transaction.journalTemplate != null}" class="mt-6 pt-6 border-t border-gray-200">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Template Jurnal</p>
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2">
+                                    <a data-testid="template-link"
+                                       th:href="@{/templates/{id}(id=${transaction.journalTemplate.id})}"
+                                       class="text-sm font-medium text-primary-600 hover:text-primary-800 hover:underline"
+                                       th:text="${transaction.journalTemplate.templateName}">Template Name</a>
+                                    <span th:if="${transaction.journalTemplate.isSystem}"
+                                          class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                        Sistem
+                                    </span>
+                                </div>
+                                <p th:if="${transaction.journalTemplate.description != null}"
+                                   class="text-xs text-gray-500 mt-1"
+                                   th:text="${transaction.journalTemplate.description}">Template description</p>
+                            </div>
+                            <div class="flex items-center space-x-2 ml-4">
+                                <span th:classappend="${transaction.journalTemplate.category?.colorCode == 'green'} ? 'bg-green-100 text-green-800' : (${transaction.journalTemplate.category?.colorCode == 'red'} ? 'bg-red-100 text-red-800' : (${transaction.journalTemplate.category?.colorCode == 'blue'} ? 'bg-blue-100 text-blue-800' : (${transaction.journalTemplate.category?.colorCode == 'cyan'} ? 'bg-cyan-100 text-cyan-800' : 'bg-purple-100 text-purple-800')))"
+                                      class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                      th:text="${transaction.journalTemplate.category?.indonesianName}">Kategori</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project if associated -->
+                    <div th:if="${transaction.project != null}" class="mt-6 pt-6 border-t border-gray-200">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Proyek Terkait</p>
+                        <div class="flex items-center">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 text-sm font-medium">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                <span th:text="${transaction.project.code + ' - ' + transaction.project.name}">PRJ-001 - Project Name</span>
+                            </span>
+                            <a th:href="@{/projects/{code}(code=${transaction.project.code})}"
+                               class="ml-2 text-xs text-indigo-600 hover:text-indigo-800">
+                                Lihat Detail
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Tags if any -->
+                    <div th:if="${transaction.transactionTags != null and !transaction.transactionTags.isEmpty()}" class="mt-6 pt-6 border-t border-gray-200">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Label</p>
+                        <div class="flex flex-wrap gap-1">
+                            <span th:each="tt : ${transaction.transactionTags}"
+                                  class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-xs">
+                                <span class="text-gray-400 mr-1" th:text="|${tt.tag.tagType.name}:|">Type:</span>
+                                <span th:text="${tt.tag.name}">Tag</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Notes if any -->
+                    <div th:if="${transaction.notes != null and !transaction.notes.isEmpty()}" class="mt-6 pt-6 border-t border-gray-200">
+                        <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Catatan</p>
+                        <p class="text-sm text-gray-700" th:text="${transaction.notes}">Notes</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Journal Entry Card -->
+            <div id="journal-entries" class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-gray-900">Jurnal Entry</h2>
+                        <span th:if="${!transaction.journalEntries.isEmpty()}"
+                              class="text-xs text-gray-500" th:text="${transaction.journalEntries[0]?.journalNumber}">JE-2025-0001</span>
+                    </div>
+                </div>
+
+                <div class="overflow-hidden">
+                    <!-- Journal Header -->
+                    <div class="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <div class="col-span-6">Akun</div>
+                        <div class="col-span-3 text-right">Debit</div>
+                        <div class="col-span-3 text-right">Kredit</div>
+                    </div>
+
+                    <!-- Journal Lines -->
+                    <div class="divide-y divide-gray-100">
+                        <!-- Preview for draft transactions (before posting) -->
+                        <div th:if="${transaction.status.name() == 'DRAFT' and transaction.journalEntries.isEmpty()}">
+                            <!-- Hidden fields for amount -->
+                            <input type="hidden" id="preview-amount" name="amount" th:value="${transaction.amount}">
+                            <!-- Hidden fields for account mappings -->
+                            <th:block th:each="mapping : ${transaction.accountMappings}">
+                                <input type="hidden"
+                                       th:name="${'accountMapping[' + mapping.templateLine.id + ']'}"
+                                       th:value="${mapping.account.id}"
+                                       class="preview-mapping">
+                            </th:block>
+                            <!-- Hidden fields for variables -->
+                            <th:block th:each="variable : ${transaction.variables}">
+                                <input type="hidden"
+                                       th:name="${'var_' + variable.variableName}"
+                                       th:value="${variable.variableValue}"
+                                       class="preview-variable">
+                            </th:block>
+                            <div id="journal-preview-content"
+                                 hx-get="/transactions/preview"
+                                 th:hx-vals="${'{&quot;templateId&quot;: &quot;' + transaction.journalTemplate.id + '&quot;}'}"
+                                 hx-trigger="load"
+                                 hx-include="#preview-amount, .preview-mapping, .preview-variable">
+                                <div class="px-6 py-8 text-center text-gray-500">
+                                    <div class="animate-pulse">Memuat preview jurnal...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Empty state for void or other transactions without journal entries -->
+                        <div th:if="${transaction.status.name() != 'DRAFT' and transaction.journalEntries.isEmpty()}" class="px-6 py-12 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Jurnal tidak tersedia</h3>
+                            <p class="mt-1 text-sm text-gray-500">Transaksi ini tidak memiliki jurnal entry</p>
+                        </div>
+
+                        <div th:each="entry, iterStat : ${transaction.journalEntries}"
+                             th:id="'journal-entry-' + ${iterStat.index}"
+                             th:classappend="${transaction.status.name() == 'VOID'} ? 'opacity-50'"
+                             class="grid grid-cols-12 gap-4 px-6 py-4 items-center journal-entry-row">
+                            <div class="col-span-6">
+                                <p>
+                                    <span th:id="'entry-account-code-' + ${iterStat.index}" class="text-sm text-gray-500" th:text="${entry.account?.accountCode}">1.1.01</span>
+                                    <span class="text-sm text-gray-500 mx-2">-</span>
+                                    <span th:id="'entry-account-name-' + ${iterStat.index}" th:classappend="${transaction.status.name() == 'VOID'} ? 'line-through'"
+                                          class="text-sm text-gray-900" th:text="${entry.account?.accountName}">Account Name</span>
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1" th:text="${entry.account?.accountType?.indonesianName}">Account Type</p>
+                            </div>
+                            <div class="col-span-3 text-right text-sm font-mono"
+                                 th:classappend="${entry.debitAmount != null and entry.debitAmount > 0} ? 'text-gray-900' : 'text-gray-400'">
+                                <span th:id="'entry-debit-' + ${iterStat.index}" th:if="${entry.debitAmount != null and entry.debitAmount > 0}" th:text="'Rp ' + ${#numbers.formatDecimal(entry.debitAmount, 0, 'POINT', 0, 'COMMA')}">Rp 0</span>
+                                <span th:unless="${entry.debitAmount != null and entry.debitAmount > 0}">-</span>
+                            </div>
+                            <div class="col-span-3 text-right text-sm font-mono"
+                                 th:classappend="${entry.creditAmount != null and entry.creditAmount > 0} ? 'text-gray-900' : 'text-gray-400'">
+                                <span th:id="'entry-credit-' + ${iterStat.index}" th:if="${entry.creditAmount != null and entry.creditAmount > 0}" th:text="'Rp ' + ${#numbers.formatDecimal(entry.creditAmount, 0, 'POINT', 0, 'COMMA')}">Rp 0</span>
+                                <span th:unless="${entry.creditAmount != null and entry.creditAmount > 0}">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Journal Totals -->
+                    <div id="journal-totals" th:if="${!transaction.journalEntries.isEmpty()}" class="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <div class="col-span-6 text-sm font-semibold text-gray-700">Total</div>
+                        <div id="total-debit" class="col-span-3 text-right text-sm font-mono font-semibold text-gray-900"
+                             th:text="'Rp ' + ${#numbers.formatDecimal(totalDebit, 0, 'POINT', 0, 'COMMA')}">Rp 0</div>
+                        <div id="total-credit" class="col-span-3 text-right text-sm font-mono font-semibold text-gray-900"
+                             th:text="'Rp ' + ${#numbers.formatDecimal(totalCredit, 0, 'POINT', 0, 'COMMA')}">Rp 0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tax Detail Section (POSTED transactions only, TAX_EXPORT permission) -->
+            <div th:if="${transaction.status.name() == 'POSTED'}" sec:authorize="hasAuthority('TAX_EXPORT')"
+                 class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6" data-testid="tax-detail-section-card">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Detail Pajak</h2>
+                </div>
+                <div class="p-6">
+                    <div id="tax-detail-container"
+                         hx-get th:hx-get="@{/transactions/{id}/tax-details(id=${transaction.id})}"
+                         hx-trigger="load" hx-swap="outerHTML">
+                        <div class="text-center py-6 text-gray-500">
+                            <p class="text-sm">Memuat detail pajak...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document Attachment Section -->
+            <div id="document-section" class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-gray-900">Lampiran Dokumen</h2>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <!-- HTMX-loaded document list -->
+                    <div id="document-list-container"
+                         hx-get th:hx-get="@{/documents/transaction/{id}(id=${transaction.id})}"
+                         hx-trigger="load"
+                         hx-swap="outerHTML">
+                        <!-- Loading indicator -->
+                        <div class="text-center py-6 text-gray-500">
+                            <svg class="animate-spin mx-auto h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="mt-2 text-sm">Memuat dokumen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Trail -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Riwayat Aktivitas</h2>
+                </div>
+
+                <div class="p-6">
+                    <div class="flow-root">
+                        <ul class="-mb-8">
+                            <!-- Void event -->
+                            <li th:if="${transaction.status.name() == 'VOID'}">
+                                <div class="relative pb-8">
+                                    <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center ring-8 ring-white">
+                                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm text-gray-900">Transaksi <span class="font-medium">di-void</span></p>
+                                            <p class="text-xs text-gray-500 mt-0.5">
+                                                <span th:text="${#temporals.format(transaction.voidedAt, 'd MMM yyyy, HH:mm')} + ' WIB - ' + ${transaction.voidedBy}">22 Nov 2025, 14:30 WIB - admin</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <!-- Posted event -->
+                            <li th:if="${transaction.postedAt != null}">
+                                <div class="relative pb-8">
+                                    <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full bg-accent-100 flex items-center justify-center ring-8 ring-white">
+                                                <svg class="w-4 h-4 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm text-gray-900">Transaksi <span class="font-medium">diposting</span></p>
+                                            <p class="text-xs text-gray-500 mt-0.5">
+                                                <span th:text="${#temporals.format(transaction.postedAt, 'd MMM yyyy, HH:mm')} + ' WIB - ' + ${transaction.postedBy}">22 Nov 2025, 14:30 WIB - admin</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <!-- Updated event (if modified after creation) -->
+                            <li th:if="${transaction.updatedAt != null and !transaction.updatedAt.equals(transaction.createdAt)}">
+                                <div class="relative pb-8">
+                                    <span class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center ring-8 ring-white">
+                                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm text-gray-900">Draft <span class="font-medium">diperbarui</span></p>
+                                            <p class="text-xs text-gray-500 mt-0.5">
+                                                <span th:text="${#temporals.format(transaction.updatedAt, 'd MMM yyyy, HH:mm')} + ' WIB'">22 Nov 2025, 14:25 WIB</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+
+                            <!-- Created event -->
+                            <li>
+                                <div class="relative">
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center ring-8 ring-white">
+                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                                </svg>
+                                            </span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm text-gray-900">Transaksi <span class="font-medium">dibuat</span> sebagai draft</p>
+                                            <p class="text-xs text-gray-500 mt-0.5">
+                                                <span th:text="${#temporals.format(transaction.createdAt, 'd MMM yyyy, HH:mm')} + ' WIB'">22 Nov 2025, 14:20 WIB</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back Button -->
+            <div class="mb-8">
+                <a th:href="@{/transactions}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Kembali ke Daftar Transaksi
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Script for post/delete actions -->
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.addEventListener('DOMContentLoaded', function() {
+                // Post button handler
+                document.getElementById('btn-post')?.addEventListener('click', async function() {
+                    const id = this.dataset.id;
+                    if (confirm('Posting transaksi ini? Setelah diposting tidak dapat diedit.')) {
+                        try {
+                            const response = await fetch(`/transactions/api/${id}/post`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                            if (response.ok) {
+                                globalThis.location.reload();
+                            } else {
+                                const error = await response.json();
+                                alert('Gagal posting: ' + (error.message || 'Unknown error'));
+                            }
+                        } catch (err) {
+                            alert('Gagal posting: ' + err.message);
+                        }
+                    }
+                });
+
+                // Delete button handler
+                document.getElementById('btn-delete')?.addEventListener('click', async function() {
+                    const id = this.dataset.id;
+                    if (confirm('Hapus transaksi ini? Aksi ini tidak dapat dibatalkan.')) {
+                        try {
+                            const response = await fetch(`/transactions/api/${id}`, {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                            if (response.ok) {
+                                globalThis.location.href = '/transactions';
+                            } else {
+                                const error = await response.json();
+                                alert('Gagal menghapus: ' + (error.message || 'Unknown error'));
+                            }
+                        } catch (err) {
+                            alert('Gagal menghapus: ' + err.message);
+                        }
+                    }
+                });
+            });
+        </script>
+</body>
+</html>

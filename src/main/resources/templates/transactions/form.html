@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout(${isEdit} ? 'Edit Transaksi' : 'Transaksi Baru', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title th:text="${isEdit} ? 'Edit Transaksi' : 'Transaksi Baru'">Transaksi</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="${isEdit} ? 'Edit Transaksi' : 'Transaksi Baru'">Transaksi</h1>
+
+    <section id="transaction-form-content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-4xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/transactions}" class="hover:text-primary-600 transition-colors">Transaksi</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900" th:text="${isEdit} ? 'Edit Transaksi' : 'Transaksi Baru'">Transaksi</span>
+            </nav>
+
+            <!-- No Template Selected State -->
+            <div th:if="${selectedTemplate == null and !isEdit}" class="mb-6">
+                <div class="p-4 bg-amber-50 rounded-lg border border-amber-200 mb-4">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-amber-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <h3 class="text-sm font-semibold text-amber-800">Pilih Template Jurnal</h3>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <a th:each="tpl : ${templates}"
+                       th:href="@{/transactions/new(templateId=${tpl.id})}"
+                       th:classappend="${tpl.category.name() == 'INCOME'} ? 'border-green-200 hover:border-green-400 hover:bg-green-50' : (${tpl.category.name() == 'EXPENSE'} ? 'border-red-200 hover:border-red-400 hover:bg-red-50' : (${tpl.category.name() == 'TRANSFER'} ? 'border-purple-200 hover:border-purple-400 hover:bg-purple-50' : 'border-blue-200 hover:border-blue-400 hover:bg-blue-50'))"
+                       class="block p-3 bg-white border rounded-lg transition-colors"
+                       data-testid="template-option">
+                        <!-- Template Header -->
+                        <div class="flex items-center mb-2">
+                            <span th:classappend="${tpl.category.name() == 'INCOME'} ? 'bg-green-500' : (${tpl.category.name() == 'EXPENSE'} ? 'bg-red-500' : (${tpl.category.name() == 'TRANSFER'} ? 'bg-purple-500' : 'bg-blue-500'))"
+                                  class="w-2 h-2 rounded-full mr-2"></span>
+                            <span class="text-sm font-medium text-gray-900" th:text="${tpl.templateName}">Template</span>
+                        </div>
+                        <!-- Mini Journal Preview - D/K accounts -->
+                        <div class="bg-gray-50 rounded p-2 text-xs" th:if="${tpl.lines != null and !tpl.lines.isEmpty()}">
+                            <div th:each="line, iterStat : ${tpl.lines}" th:if="${iterStat.index < 3}" class="flex justify-between text-gray-600 mb-0.5 last:mb-0">
+                                <span>
+                                    <span th:classappend="${line.position.name() == 'DEBIT'} ? 'text-blue-600' : 'text-green-600'"
+                                          th:text="${line.position.name() == 'DEBIT'} ? 'D:' : 'K:'">D:</span>
+                                    <span th:text="${line.account != null ? line.account.accountName : (line.accountHint != null ? '(' + line.accountHint + ')' : '(pilih akun)')}">Account</span>
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Template Info Card (for new transactions with selected template) -->
+            <div th:if="${selectedTemplate != null and !isEdit}" class="mb-6 p-4 rounded-lg border"
+                 th:classappend="${selectedTemplate.category.name() == 'INCOME'} ? 'bg-green-50 border-green-200' : (${selectedTemplate.category.name() == 'EXPENSE'} ? 'bg-red-50 border-red-200' : (${selectedTemplate.category.name() == 'TRANSFER'} ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'))">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg th:classappend="${selectedTemplate.category.name() == 'INCOME'} ? 'text-green-600' : (${selectedTemplate.category.name() == 'EXPENSE'} ? 'text-red-600' : (${selectedTemplate.category.name() == 'TRANSFER'} ? 'text-purple-600' : 'text-blue-600'))"
+                             class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 th:classappend="${selectedTemplate.category.name() == 'INCOME'} ? 'text-green-800' : (${selectedTemplate.category.name() == 'EXPENSE'} ? 'text-red-800' : (${selectedTemplate.category.name() == 'TRANSFER'} ? 'text-purple-800' : 'text-blue-800'))"
+                                    class="text-sm font-semibold">
+                                    Template: <span th:text="${selectedTemplate.templateName}">Template Name</span>
+                                </h3>
+                                <p th:classappend="${selectedTemplate.category.name() == 'INCOME'} ? 'text-green-600' : (${selectedTemplate.category.name() == 'EXPENSE'} ? 'text-red-600' : (${selectedTemplate.category.name() == 'TRANSFER'} ? 'text-purple-600' : 'text-blue-600'))"
+                                   class="text-xs mt-0.5">
+                                    Kategori:
+                                    <span th:text="${selectedTemplate.category.name() == 'INCOME'} ? 'Pendapatan' : (${selectedTemplate.category.name() == 'EXPENSE'} ? 'Pengeluaran' : (${selectedTemplate.category.name() == 'PAYMENT'} ? 'Pembayaran' : (${selectedTemplate.category.name() == 'RECEIPT'} ? 'Penerimaan' : 'Transfer')))">Category</span>
+                                    <span th:if="${selectedTemplate.cashFlowCategory != null}">
+                                        | Cash Flow: <span th:text="${selectedTemplate.cashFlowCategory.name()}">Operating</span>
+                                    </span>
+                                </p>
+                            </div>
+                            <a th:href="@{/transactions/new}" th:classappend="${selectedTemplate.category.name() == 'INCOME'} ? 'text-green-700 hover:text-green-900' : (${selectedTemplate.category.name() == 'EXPENSE'} ? 'text-red-700 hover:text-red-900' : (${selectedTemplate.category.name() == 'TRANSFER'} ? 'text-purple-700 hover:text-purple-900' : 'text-blue-700 hover:text-blue-900'))"
+                               class="text-xs underline">Ganti Template</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Form Card (only show when template is selected or editing) -->
+            <div th:if="${selectedTemplate != null or isEdit}" class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <!-- Invoice Payment Info Banner (when paying invoice) -->
+                <div th:if="${invoice != null}" class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-semibold text-blue-800">Pembayaran Invoice</h3>
+                            <p class="text-xs text-blue-600 mt-1">
+                                <span th:text="${invoice.invoiceNumber}">INV-001</span> -
+                                <span th:text="${invoice.client.name}">Client</span>
+                                <span th:if="${invoice.project}">
+                                    | Proyek: <span th:text="${invoice.project.name}">Project</span>
+                                </span>
+                            </p>
+                            <p class="text-xs text-blue-600">
+                                Jumlah: <strong th:text="'Rp ' + ${#numbers.formatDecimal(invoice.amount, 0, 'COMMA', 0, 'POINT')}">Rp 0</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="form-transaksi" th:action="@{/transactions}" method="post"
+                      th:data-amount="${prefillAmount != null ? prefillAmount : (initialAmount != null ? initialAmount : 0)}"
+                      th:data-description="${prefillDescription != null ? prefillDescription : (initialDescription != null ? initialDescription : '')}"
+                      x-data="transactionForm">
+                    <!-- Hidden fields -->
+                    <input type="hidden" name="templateId" th:value="${selectedTemplate?.id ?: transaction?.journalTemplate?.id}">
+                    <input type="hidden" name="id" th:if="${isEdit}" th:value="${transaction?.id}">
+                    <input type="hidden" id="invoiceId" name="invoiceId" th:value="${invoice?.id}">
+
+                    <!-- Transaction Header Section -->
+                    <div class="p-6 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Informasi Transaksi</h2>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Transaction Number -->
+                            <div>
+                                <label for="transactionNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                                    No. Transaksi
+                                </label>
+                                <input type="text" id="transactionNumber" name="transactionNumber"
+                                       th:value="${isEdit and transaction.transactionNumber != null ? transaction.transactionNumber : '(Dibuat saat posting)'}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 text-sm"
+                                       readonly>
+                                <p class="text-xs text-gray-500 mt-1">Nomor dibuat otomatis saat posting</p>
+                            </div>
+
+                            <!-- Transaction Date -->
+                            <div>
+                                <label for="transactionDate" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Tanggal <span class="text-red-500">*</span>
+                                </label>
+                                <input type="date" id="transactionDate" name="transactionDate"
+                                       th:value="${isEdit ? transaction.transactionDate : #temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                       required>
+                            </div>
+
+                            <!-- Amount (only for SIMPLE templates) -->
+                            <div th:if="${isDetailedTemplate != true}">
+                                <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Jumlah <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                                    <input type="text" id="amount" name="amountDisplay"
+                                           :value="formattedAmount"
+                                           @input="updateAmount"
+                                           class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm text-right font-mono"
+                                           placeholder="0"
+                                           required>
+                                    <input type="hidden" id="amountHidden" name="amount" :value="amount">
+                                </div>
+                            </div>
+
+                            <!-- Variable inputs for DETAILED templates -->
+                            <div th:if="${isDetailedTemplate == true}" class="md:col-span-2">
+                                <h3 class="text-sm font-semibold text-gray-700 mb-3">Saldo per Akun</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto p-1">
+                                    <div th:each="fv : ${formulaVariables}" class="relative">
+                                        <label for="var_placeholder" th:for="${'var_' + fv.name()}" class="block text-xs font-medium text-gray-600 mb-1 truncate" th:text="${fv.label()}" th:title="${fv.label()}">Variable Label</label>
+                                        <div class="relative">
+                                            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">Rp</span>
+                                            <input type="text"
+                                                   th:id="${'var_' + fv.name()}"
+                                                   th:name="${'var_' + fv.name()}"
+                                                   th:data-var-name="${fv.name()}"
+                                                   class="var-input w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-right font-mono"
+                                                   placeholder="0"
+                                                   @input="dispatchVarChanged">
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Hidden amount field for DETAILED (set to 0, actual values come from variables) -->
+                                <input type="hidden" name="amount" value="0">
+                            </div>
+
+                            <!-- Dynamic Account Selection (for template lines with null accounts) -->
+                            <th:block th:if="${selectedTemplate != null and selectedTemplate.lines != null}">
+                                <th:block th:each="line, lineStat : ${selectedTemplate.lines}">
+                                    <div th:if="${line.account == null}" class="md:col-span-2"
+                                         x-data="accountPicker"
+                                         th:with="existingMapping=${isEdit and transaction != null ? #lists.toList(transaction.accountMappings).?[templateLine.id == #vars.line.id] : null},
+                                                  initialAcc=${existingMapping != null and existingMapping.size() > 0 ? existingMapping[0].account : null}"
+                                         th:data-initial-id="${initialAcc != null ? initialAcc.id : ''}"
+                                         th:data-initial-label="${initialAcc != null ? initialAcc.accountCode + ' - ' + initialAcc.accountName : ''}">
+                                        <label th:for="${'accountMapping_' + line.id}"
+                                               class="block text-sm font-medium text-gray-700 mb-1">
+                                            <span th:text="${line.accountHint != null and !#strings.isEmpty(line.accountHint)} ? ${line.accountHint} : 'Akun ' + (${line.position.name() == 'DEBIT'} ? 'Debit' : 'Kredit')">
+                                                Akun
+                                            </span>
+                                            <span class="text-red-500">*</span>
+                                            <span class="inline-flex items-center justify-center w-5 h-5 ml-1 rounded-full bg-blue-100 text-blue-700 font-bold text-xs"
+                                                  title="Akun dipilih saat input transaksi">?</span>
+                                        </label>
+                                        <div class="relative">
+                                            <input type="text" th:id="${'accountMapping_' + line.id}"
+                                                   x-model="label"
+                                                   @input.debounce.300ms="search()"
+                                                   @focus="focusPicker()"
+                                                   @click.away="open = false"
+                                                   autocomplete="off"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                                   placeholder="Ketik kode/nama akun..." required>
+                                            <input type="hidden" th:name="${'accountMapping[' + line.id + ']'}"
+                                                   :value="selectedId"
+                                                   @change="$dispatch('account-changed')"
+                                                   x-effect="$dispatch('account-changed')">
+                                            <div x-show="open &amp;&amp; results.length > 0"
+                                                 class="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                                <template x-for="a in results" :key="a.id">
+                                                    <button type="button" @click="select(a)"
+                                                            data-testid="account-picker-result"
+                                                            class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                                        <span class="font-medium" x-text="a.code"></span>
+                                                        <span class="text-gray-500"> — </span>
+                                                        <span x-text="a.name"></span>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <p th:if="${line.description != null and !#strings.isEmpty(line.description)}"
+                                           class="text-xs text-gray-500 mt-1"
+                                           th:text="${line.description}">Deskripsi</p>
+                                    </div>
+                                </th:block>
+                            </th:block>
+
+                            <!-- Description (full width) -->
+                            <div class="md:col-span-2">
+                                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Keterangan <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" id="description" name="description"
+                                       :value="description"
+                                       @input="updateDescription"
+                                       placeholder="Contoh: Jasa Konsultasi PT. ABC - Invoice INV-2025-001"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                       required>
+                            </div>
+
+                            <!-- Project (optional) -->
+                            <div th:if="${projects != null and !projects.isEmpty()}">
+                                <label for="project" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Proyek
+                                </label>
+                                <select id="project" name="projectId"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                    <option value="">-- Tanpa Proyek --</option>
+                                    <th:block th:each="prj : ${projects}">
+                                        <option th:value="${prj.id}"
+                                                th:text="${prj.code + ' - ' + prj.name}"
+                                                th:selected="${(prefillProjectId != null and prefillProjectId == prj.id) or (isEdit and transaction?.project?.id == prj.id)}">Project</option>
+                                    </th:block>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">Pilih proyek untuk tracking pendapatan/biaya</p>
+                            </div>
+
+                            <!-- Tags -->
+                            <div th:if="${tagsByType != null and !tagsByType.isEmpty()}" class="md:col-span-2">
+                                <span class="block text-sm font-medium text-gray-700 mb-2">Label</span>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div th:each="entry : ${tagsByType}">
+                                        <p class="text-xs font-semibold text-gray-500 uppercase mb-1" th:text="${entry.key.name}">Type</p>
+                                        <div class="space-y-1">
+                                            <label th:each="tag : ${entry.value}" class="flex items-center">
+                                                <input type="checkbox" name="tagIds" th:value="${tag.id}"
+                                                       th:checked="${selectedTagIds != null and selectedTagIds.contains(tag.id)}"
+                                                       class="h-4 w-4 text-primary-600 border-gray-300 rounded">
+                                                <span class="ml-2 text-sm text-gray-700" th:text="${tag.name}">Tag</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reference Number -->
+                            <div>
+                                <label for="referenceNumber" class="block text-sm font-medium text-gray-700 mb-1">
+                                    No. Referensi
+                                </label>
+                                <input type="text" id="referenceNumber" name="referenceNumber"
+                                       th:value="${prefillReference != null ? prefillReference : (isEdit ? transaction.referenceNumber : '')}"
+                                       placeholder="Contoh: INV-2025-001, PO-001"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                            </div>
+
+                            <!-- Notes -->
+                            <div>
+                                <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Catatan
+                                </label>
+                                <input type="text" id="notes" name="notes"
+                                       th:value="${isEdit ? transaction.notes : ''}"
+                                       placeholder="Catatan tambahan (opsional)"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Journal Entry Preview Section -->
+                    <div id="journal-preview" class="p-6 border-b border-gray-200 bg-gray-50">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900">Preview Jurnal</h2>
+                            <span class="text-xs text-gray-500">Jurnal akan dibuat otomatis berdasarkan template</span>
+                        </div>
+
+                        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <!-- Journal Header -->
+                            <div class="grid grid-cols-12 gap-4 px-4 py-2 bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                <div class="col-span-6">Akun</div>
+                                <div class="col-span-3 text-right">Debit</div>
+                                <div class="col-span-3 text-right">Kredit</div>
+                            </div>
+
+                            <!-- Journal Lines Preview (works for both new and edit mode) -->
+                            <div id="preview-content"
+                                 th:if="${selectedTemplate != null}"
+                                 hx-get="/transactions/preview"
+                                 th:hx-vals="${'{&quot;templateId&quot;: &quot;' + selectedTemplate.id + '&quot;}'}"
+                                 hx-trigger="load, amount-changed from:body, account-changed from:body, var-changed from:body"
+                                 hx-include="[name='amount'], [name^='accountMapping'], [name^='var_']">
+                                <div class="p-8 text-center text-gray-500">
+                                    <div class="animate-pulse">Memuat preview...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Document Attachment Section -->
+                    <div id="document-section" th:if="${isEdit and transaction != null}" class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900">Lampiran Dokumen</h2>
+                            <span class="text-xs text-gray-500">Nota, kwitansi, invoice, atau bukti pembayaran</span>
+                        </div>
+
+                        <!-- HTMX-loaded document list -->
+                        <div id="document-list-container"
+                             th:hx-get="@{/documents/transaction/{id}(id=${transaction.id})}"
+                             hx-trigger="load"
+                             hx-swap="outerHTML">
+                            <div class="text-center py-8 text-gray-500">
+                                <div class="animate-pulse">Memuat dokumen...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Document Placeholder for New Transaction -->
+                    <div id="document-placeholder" th:unless="${isEdit and transaction != null}" class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-semibold text-gray-900">Lampiran Dokumen</h2>
+                        </div>
+
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
+                            <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            <p class="mt-2 text-sm text-gray-600">Simpan transaksi terlebih dahulu untuk mengunggah dokumen</p>
+                            <p class="text-xs text-gray-500 mt-1">Dokumen dapat ditambahkan setelah transaksi tersimpan</p>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="p-6 bg-gray-50 rounded-b-lg flex items-center justify-between">
+                        <a th:href="@{/transactions}"
+                           class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+                            Batal
+                        </a>
+                        <div class="flex items-center space-x-3">
+                            <!-- Save as Draft -->
+                            <button id="btn-simpan-draft" type="button"
+                                    data-testid="btn-submit"
+                                    :disabled="submitting"
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span class="flex items-center">
+                                    <svg :class="{ 'hidden': notSubmitting }" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <svg :class="{ 'hidden': submitting }" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                                    </svg>
+                                    <span x-text="getSubmitButtonText()">Simpan Draft</span>
+                                </span>
+                            </button>
+
+                            <!-- Save and Post -->
+                            <button id="btn-simpan-posting" type="button"
+                                    :disabled="submitting"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span class="flex items-center">
+                                    <svg :class="{ 'hidden': notSubmitting }" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <svg :class="{ 'hidden': submitting }" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    <span x-text="getSubmitPostButtonText()">Simpan &amp; Posting</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Help Section -->
+            <div x-data="toggleState" class="mt-6 mb-8" th:if="${selectedTemplate != null or isEdit}">
+                <button @click="toggle"
+                        class="flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Bantuan Pengisian Transaksi
+                </button>
+
+                <div :class="{ 'hidden': !open }" class="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-blue-800">
+                        <div>
+                            <h4 class="font-semibold mb-2">Status Transaksi</h4>
+                            <ul class="space-y-1">
+                                <li><span class="font-medium">Draft:</span> Transaksi tersimpan tapi belum mempengaruhi saldo</li>
+                                <li><span class="font-medium">Posted:</span> Transaksi sudah diposting ke jurnal</li>
+                                <li><span class="font-medium">Void:</span> Transaksi dibatalkan</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold mb-2">Tips</h4>
+                            <ul class="space-y-1">
+                                <li>Gunakan "Simpan Draft" jika belum yakin dengan data</li>
+                                <li>Transaksi yang sudah Posted tidak bisa diedit</li>
+                                <li>Gunakan Void untuk membatalkan transaksi Posted</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Script for form submission -->
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.addEventListener('DOMContentLoaded', function() {
+                const form = document.getElementById('form-transaksi');
+                if (!form) return;
+
+                const templateId = /*[[${selectedTemplate?.id ?: (transaction?.journalTemplate?.id ?: '')}]]*/ '';
+                const transactionId = /*[[${isEdit and transaction != null ? transaction.id : ''}]]*/ '';
+                const invoiceId = /*[[${invoice?.id ?: ''}]]*/ '';
+                const isEdit = /*[[${isEdit}]]*/ false;
+
+                // Local submitting state (independent of Alpine for robustness)
+                let isSubmitting = false;
+
+                function getFormData() {
+                    const projectSelect = document.getElementById('project');
+                    const projectId = projectSelect?.value || null;
+
+                    // Collect account mappings for dynamic template lines.
+                    // Picker emits a hidden input named "accountMapping[<line.id>]"; the
+                    // legacy <select> form posted the same name, so selector covers both.
+                    const accountMappings = {};
+                    document.querySelectorAll('[name^="accountMapping"]').forEach(el => {
+                        const match = el.name.match(/accountMapping\[([^\]]+)\]/);
+                        if (match && el.value) {
+                            accountMappings[match[1]] = el.value;
+                        }
+                    });
+
+                    // Collect variable values for DETAILED templates
+                    const variables = {};
+                    document.querySelectorAll('input.var-input').forEach(input => {
+                        const varName = input.dataset.varName;
+                        if (varName && input.value) {
+                            // Parse formatted number (remove dots as thousand separators)
+                            const cleanValue = input.value.replaceAll(/\D/g, '');
+                            if (cleanValue) {
+                                variables[varName] = Number.parseInt(cleanValue, 10);
+                            }
+                        }
+                    });
+
+                    // Parse amount from display input (handles formatted numbers like "1.000.000")
+                    const amountDisplay = document.getElementById('amount');
+                    const rawAmount = amountDisplay ? Number.parseInt(amountDisplay.value.replaceAll(/\D/g, ''), 10) || 0 : 0;
+
+                    const data = {
+                        templateId: templateId,
+                        transactionDate: document.getElementById('transactionDate').value,
+                        amount: rawAmount,
+                        description: document.getElementById('description').value,
+                        referenceNumber: document.getElementById('referenceNumber')?.value || '',
+                        notes: document.getElementById('notes')?.value || '',
+                        projectId: projectId || null,
+                        accountMappings: accountMappings
+                    };
+
+                    // Include variables for DETAILED templates
+                    if (Object.keys(variables).length > 0) {
+                        data.variables = variables;
+                    }
+
+                    // Collect selected tag IDs
+                    const tagIds = [];
+                    document.querySelectorAll('input[name="tagIds"]:checked').forEach(cb => {
+                        tagIds.push(cb.value);
+                    });
+                    if (tagIds.length > 0) {
+                        data.tagIds = tagIds;
+                    }
+
+                    // Note: transactionNumber is NOT included - it's auto-generated by server on create
+                    // and carried over automatically on update
+
+                    // Include invoiceId if paying an invoice
+                    if (invoiceId) {
+                        data.invoiceId = invoiceId;
+                    }
+                    return data;
+                }
+
+                // Save Draft
+                document.getElementById('btn-simpan-draft')?.addEventListener('click', async function() {
+                    if (isSubmitting) return; // Prevent double-click
+                    isSubmitting = true;
+
+                    // Update Alpine state if available (for UI feedback)
+                    const alpineData = Alpine.$data(form);
+                    if (alpineData) alpineData.submitting = true;
+
+                    const data = getFormData();
+
+                    try {
+                        let response;
+                        if (isEdit && transactionId) {
+                            response = await fetch(`/transactions/api/${transactionId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(data)
+                            });
+                        } else {
+                            response = await fetch('/transactions/api', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(data)
+                            });
+                        }
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            globalThis.location.href = `/transactions/${result.id}`;
+                        } else {
+                            const errorText = await response.text();
+                            console.error('Error response:', errorText);
+                            alert('Gagal menyimpan: ' + errorText);
+                        }
+                    } catch (err) {
+                        console.error('Exception:', err);
+                        alert('Gagal menyimpan: ' + err.message);
+                    } finally {
+                        isSubmitting = false;
+                        if (alpineData) alpineData.submitting = false;
+                    }
+                });
+
+                // Save and Post
+                document.getElementById('btn-simpan-posting')?.addEventListener('click', async function() {
+                    if (isSubmitting) return; // Prevent double-click
+                    isSubmitting = true;
+
+                    // Update Alpine state if available (for UI feedback)
+                    const alpineData = Alpine.$data(form);
+                    if (alpineData) alpineData.submitting = true;
+
+                    const data = getFormData();
+
+                    try {
+                        // First create/update the transaction
+                        let createResponse;
+                        if (isEdit && transactionId) {
+                            createResponse = await fetch(`/transactions/api/${transactionId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(data)
+                            });
+                        } else {
+                            createResponse = await fetch('/transactions/api', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(data)
+                            });
+                        }
+
+                        if (!createResponse.ok) {
+                            const error = await createResponse.json();
+                            alert('Gagal menyimpan: ' + (error.message || 'Unknown error'));
+                            return;
+                        }
+
+                        const result = await createResponse.json();
+
+                        // Then post it
+                        const postResponse = await fetch(`/transactions/api/${result.id}/post`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+
+                        if (postResponse.ok) {
+                            globalThis.location.href = `/transactions/${result.id}`;
+                        } else {
+                            const error = await postResponse.json();
+                            alert('Gagal posting: ' + (error.message || 'Unknown error'));
+                            // Still redirect to show the draft
+                            globalThis.location.href = `/transactions/${result.id}`;
+                        }
+                    } catch (err) {
+                        alert('Gagal menyimpan: ' + err.message);
+                    } finally {
+                        isSubmitting = false;
+                        if (alpineData) alpineData.submitting = false;
+                    }
+                });
+            });
+        </script>
+</body>
+</html>

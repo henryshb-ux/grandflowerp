@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Dashboard Vendor Industri', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head><title>Dashboard Vendor Industri</title></head>
+<body>
+<h1 id="page-title">Dashboard — PT Grandindo Mitra Abadi</h1>
+
+<section class="space-y-6" data-testid="industry-dashboard">
+
+    <!-- ── Row 1: Quick Stats (Bulan Ini) ─────────────────── -->
+    <div id="widget-quick-stats"
+         hx-get="/dashboard/industry/quick-stats"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        <!-- Skeleton -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
+            <div th:each="i : ${#numbers.sequence(1,4)}"
+                 class="bg-white rounded-lg shadow h-24"></div>
+        </div>
+    </div>
+
+    <!-- ── Row 2: Sales Pipeline + Procurement ────────────── -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        <!-- Sales Pipeline -->
+        <div id="widget-sales-pipeline"
+             hx-get="/dashboard/industry/sales-pipeline"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="bg-white rounded-lg shadow h-36 animate-pulse"></div>
+        </div>
+
+        <!-- Procurement Status -->
+        <div id="widget-procurement"
+             hx-get="/dashboard/industry/procurement"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="bg-white rounded-lg shadow h-36 animate-pulse"></div>
+        </div>
+    </div>
+
+    <!-- ── Row 3: AR + AP ─────────────────────────────────── -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        <!-- Piutang / AR -->
+        <div id="widget-ar"
+             hx-get="/dashboard/industry/ar"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="bg-white rounded-lg shadow h-56 animate-pulse"></div>
+        </div>
+
+        <!-- Hutang & PO / AP -->
+        <div id="widget-ap"
+             hx-get="/dashboard/industry/ap"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="bg-white rounded-lg shadow h-56 animate-pulse"></div>
+        </div>
+    </div>
+
+    <!-- ── Row 4: Cashflow 30 Hari ────────────────────────── -->
+    <div id="widget-cashflow"
+         hx-get="/dashboard/industry/cashflow"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        <div class="bg-white rounded-lg shadow h-48 animate-pulse"></div>
+    </div>
+
+    <!-- ── Row 5: Proyek Aktif ────────────────────────────── -->
+    <div id="widget-projects"
+         hx-get="/dashboard/industry/projects"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+        <div class="bg-white rounded-lg shadow h-64 animate-pulse"></div>
+    </div>
+
+    <!-- ── Refresh button ─────────────────────────────────── -->
+    <div class="flex justify-end">
+        <button class="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                hx-get="/dashboard/industry"
+                hx-target="body"
+                hx-push-url="true">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Refresh Data
+        </button>
+    </div>
+
+</section>
+</body>
+</html>

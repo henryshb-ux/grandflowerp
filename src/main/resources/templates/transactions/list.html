@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Transaksi', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title>Transaksi</title>
+</head>
+<body>
+    <h1 id="page-title">Transaksi</h1>
+
+    <section id="transactions-list-content" class="h-full flex flex-col">
+        <!-- Header Actions -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4 flex-shrink-0">
+            <!-- Filters Row -->
+            <form id="filter-form" th:action="@{/transactions}" method="get"
+                  hx-get="/transactions"
+                  hx-target="#transaction-table"
+                  hx-swap="outerHTML"
+                  hx-push-url="true"
+                  class="flex flex-wrap items-center gap-2">
+                <!-- Search -->
+                <div class="relative">
+                    <input id="search-transaksi" type="text" name="search" placeholder="Cari transaksi..."
+                           th:value="${searchQuery}"
+                           class="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48 lg:w-64">
+                    <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+
+                <!-- Date Range -->
+                <div class="flex items-center gap-1">
+                    <input type="date" name="startDate" th:value="${startDate}"
+                           class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <span class="text-gray-400">-</span>
+                    <input type="date" name="endDate" th:value="${endDate}"
+                           class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+
+                <!-- Status Filter -->
+                <select id="filter-status" name="status"
+                        hx-get="/transactions"
+                        hx-target="#transaction-table"
+                        hx-swap="outerHTML"
+                        hx-push-url="true"
+                        hx-include="#filter-form"
+                        class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Semua Status</option>
+                    <option th:each="s : ${statuses}" th:value="${s.name()}" th:text="${s.name()}" th:selected="${selectedStatus == s.name()}">Status</option>
+                </select>
+
+                <!-- Category Filter -->
+                <select id="filter-category" name="category"
+                        hx-get="/transactions"
+                        hx-target="#transaction-table"
+                        hx-swap="outerHTML"
+                        hx-push-url="true"
+                        hx-include="#filter-form"
+                        class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Semua Kategori</option>
+                    <option th:each="cat : ${categories}" th:value="${cat.name()}"
+                            th:text="${cat.name() == 'INCOME'} ? 'Pendapatan' : (${cat.name() == 'EXPENSE'} ? 'Pengeluaran' : (${cat.name() == 'PAYMENT'} ? 'Pembayaran' : (${cat.name() == 'RECEIPT'} ? 'Penerimaan' : 'Transfer')))"
+                            th:selected="${selectedCategory == cat.name()}">Category</option>
+                </select>
+
+                <!-- Project Filter -->
+                <select id="filter-project" name="projectCode" th:if="${projects != null and !projects.isEmpty()}"
+                        hx-get="/transactions"
+                        hx-target="#transaction-table"
+                        hx-swap="outerHTML"
+                        hx-push-url="true"
+                        hx-include="#filter-form"
+                        class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Semua Proyek</option>
+                    <option th:each="prj : ${projects}" th:value="${prj.code}"
+                            th:text="${prj.code + ' - ' + prj.name}"
+                            th:selected="${selectedProjectCode != null and selectedProjectCode == prj.code}">Project</option>
+                </select>
+
+                <!-- Tag Filter -->
+                <select id="filter-tag" name="tagId" th:if="${tagsByType != null and !tagsByType.isEmpty()}"
+                        hx-get="/transactions"
+                        hx-target="#transaction-table"
+                        hx-swap="outerHTML"
+                        hx-push-url="true"
+                        hx-include="#filter-form"
+                        class="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Semua Label</option>
+                    <optgroup th:each="entry : ${tagsByType}" th:label="${entry.key.name}">
+                        <option th:each="tag : ${entry.value}" th:value="${tag.id}"
+                                th:text="${tag.name}"
+                                th:selected="${selectedTagId != null and selectedTagId.equals(tag.id)}">Tag</option>
+                    </optgroup>
+                </select>
+
+                <button type="submit" id="btn-filter" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Filter
+                </button>
+            </form>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2">
+                <!-- Manual Journal Entry Button -->
+                <a sec:authorize="hasAuthority('TRANSACTION_CREATE')"
+                   th:href="@{/transactions/journal-entry/new}"
+                   id="btn-journal-entry"
+                   data-testid="btn-journal-entry"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-primary-700 bg-primary-50 border border-primary-300 rounded-lg hover:bg-primary-100 transition-colors whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    Jurnal Manual
+                </a>
+
+            <!-- Template Search Autocomplete -->
+            <div sec:authorize="hasAuthority('TRANSACTION_CREATE')"
+                 id="template-search-container"
+                 class="relative w-full lg:w-80">
+                <div class="relative">
+                    <input id="template-search"
+                           type="search"
+                           data-testid="search-input"
+                           placeholder="Cari template transaksi..."
+                           autocomplete="off"
+                           hx-get="/transactions/templates/search"
+                           hx-trigger="keyup changed delay:300ms, focus"
+                           hx-target="#template-search-results"
+                           hx-swap="innerHTML"
+                           hx-include="[name='q']"
+                           name="q"
+                           class="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+
+                <!-- Results dropdown (populated by HTMX) -->
+                <div id="template-search-results" data-testid="search-dropdown"
+                     class="hidden absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto">
+                    <!-- HTMX will populate this -->
+                </div>
+            </div>
+            </div><!-- /Action Buttons -->
+        </div>
+
+        <!-- Transaction Table (loaded via fragment) -->
+        <th:block th:insert="~{fragments/transaction-table :: table}"/>
+    </section>
+
+    <!-- Page Scripts -->
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            // Auto-reload transaction list when transactions are updated (e.g., from Quick Transaction)
+            document.addEventListener('transactionsUpdated', function() {
+                // Trigger HTMX request to reload the transaction table
+                const filterForm = document.getElementById('filter-form');
+                if (filterForm) {
+                    htmx.trigger(filterForm, 'submit');
+                }
+            });
+            // Stop propagation on action buttons to prevent row click
+            document.getElementById('transactions-list-content').addEventListener('click', function(e) {
+                if (e.target.closest('.trx-actions')) {
+                    e.stopPropagation();
+                }
+            });
+
+            // Template search dropdown show/hide
+            const searchResults = document.getElementById('template-search-results');
+            const searchInput = document.getElementById('template-search');
+            const searchContainer = document.getElementById('template-search-container');
+
+            function showDropdown() {
+                if (searchResults) searchResults.classList.remove('hidden');
+            }
+            function hideDropdown() {
+                if (searchResults) searchResults.classList.add('hidden');
+            }
+
+            // Show dropdown when HTMX swaps content
+            if (searchResults) {
+                searchResults.addEventListener('htmx:afterSwap', showDropdown);
+            }
+
+            // Also show on input focus
+            if (searchInput) {
+                searchInput.addEventListener('focus', showDropdown);
+            }
+
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (searchContainer && !searchContainer.contains(e.target)) {
+                    hideDropdown();
+                }
+            });
+
+            // Hide dropdown on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    hideDropdown();
+                    if (searchInput) searchInput.blur();
+                }
+            });
+        </script>
+</body>
+</html>
