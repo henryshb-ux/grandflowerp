@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Profitabilitas Proyek', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Profitabilitas Proyek</title>
+</head>
+<body>
+    <h1 id="page-title">Profitabilitas Proyek</h1>
+
+    <section id="project-profitability-content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-4xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/reports}" class="hover:text-primary-600 transition-colors">Laporan</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900">Profitabilitas Proyek</span>
+            </nav>
+
+            <!-- Filter Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <form th:action="@{/reports/project-profitability}" method="get" class="space-y-3">
+                    <div class="flex-1 min-w-[200px]">
+                        <label for="projectId" class="block text-sm font-medium text-gray-700 mb-1">Proyek</label>
+                        <select id="projectId" name="projectId"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                            <option value="">-- Pilih Proyek --</option>
+                            <th:block th:each="prj : ${projects}">
+                                <option th:value="${prj.id}"
+                                        th:text="${prj.code + ' - ' + prj.name}"
+                                        th:selected="${selectedProjectId != null and selectedProjectId.equals(prj.id)}">Project</option>
+                            </th:block>
+                        </select>
+                    </div>
+                    <div th:replace="~{reports/fragments/period-selector :: period-selector('range')}"></div>
+                </form>
+            </div>
+
+            <!-- No Project Selected Message -->
+            <div id="no-project-selected" th:if="${selectedProjectId == null}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <p class="text-gray-500">Pilih proyek untuk melihat laporan profitabilitas</p>
+            </div>
+
+            <!-- Report Content -->
+            <th:block th:if="${report != null}">
+                <!-- Cost Overrun Alert -->
+                <div id="cost-overrun-alert" th:if="${costOverrun != null and costOverrun.riskLevel.name() == 'HIGH'}"
+                     class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <svg class="w-6 h-6 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <div>
+                            <h4 class="text-sm font-semibold text-red-800">Risiko Cost Overrun Tinggi</h4>
+                            <p class="text-sm text-red-700 mt-1">
+                                Proyek ini sudah menggunakan <span th:text="${costOverrun.budgetSpentPercent + '%'}">0%</span> dari budget
+                                dengan progress <span th:text="${costOverrun.progressPercent + '%'}">0%</span>.
+                                Proyeksi biaya akhir: <span class="font-mono" th:text="${#numbers.formatDecimal(costOverrun.projectedFinalCost, 1, 'POINT', 0, 'COMMA')}">0</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project Info & Cost Overrun Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Project Info -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">Informasi Proyek</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Kode</span>
+                                <span class="font-medium" th:text="${report.project.code}">PRJ-001</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Nama</span>
+                                <span class="font-medium" th:text="${report.project.name}">Project Name</span>
+                            </div>
+                            <div class="flex justify-between" th:if="${report.project.client != null}">
+                                <span class="text-gray-500">Klien</span>
+                                <span class="font-medium" th:text="${report.project.client.name}">Client Name</span>
+                            </div>
+                            <div class="flex justify-between" th:if="${report.project.contractValue != null}">
+                                <span class="text-gray-500">Nilai Kontrak</span>
+                                <span class="font-mono" th:text="${#numbers.formatDecimal(report.project.contractValue, 1, 'POINT', 0, 'COMMA')}">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Status -->
+                    <div id="cost-status" th:if="${costOverrun != null}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">Status Biaya</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Budget</span>
+                                <span id="cost-budget" class="font-mono" th:text="${#numbers.formatDecimal(costOverrun.budget, 1, 'POINT', 0, 'COMMA')}">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Terpakai</span>
+                                <span id="cost-spent" class="font-mono" th:text="${#numbers.formatDecimal(costOverrun.spent, 1, 'POINT', 0, 'COMMA')}">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">% Budget Terpakai</span>
+                                <span id="budget-spent-percent" class="font-medium" th:text="${costOverrun.budgetSpentPercent + '%'}">0%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Progress</span>
+                                <span id="progress-percent" class="font-medium" th:text="${costOverrun.progressPercent + '%'}">0%</span>
+                            </div>
+                            <div class="flex justify-between pt-2 border-t">
+                                <span class="text-gray-500">Status Risiko</span>
+                                <span id="risk-level" class="px-2 py-0.5 rounded text-xs font-medium"
+                                      th:classappend="${costOverrun.riskLevel.name() == 'LOW'} ? 'bg-green-100 text-green-800' : (${costOverrun.riskLevel.name() == 'MEDIUM'} ? 'bg-amber-100 text-amber-800' : (${costOverrun.riskLevel.name() == 'HIGH'} ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'))"
+                                      th:text="${costOverrun.riskLevel.name()}">LOW</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profitability Report -->
+                <div id="profitability-report" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h2 id="report-title" class="text-lg font-bold text-gray-900">LAPORAN PROFITABILITAS</h2>
+                        <p class="text-sm text-gray-500 mt-1"
+                           th:text="'Periode: ' + ${#temporals.format(startDate, 'd MMMM yyyy')} + ' - ' + ${#temporals.format(endDate, 'd MMMM yyyy')}">
+                            Periode: 1 Jan - 31 Dec 2025
+                        </p>
+                    </div>
+
+                    <div class="p-6">
+                        <!-- Revenue Section -->
+                        <div class="mb-6">
+                            <h3 class="text-sm font-bold text-green-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-green-200">
+                                Pendapatan
+                            </h3>
+                            <div class="space-y-2">
+                                <th:block th:if="${!report.revenueItems.isEmpty()}">
+                                    <div th:each="item : ${report.revenueItems}" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded">
+                                        <span class="text-sm text-gray-700" th:text="${item.account.accountName}">Revenue Account</span>
+                                        <span class="text-sm font-mono" th:text="${#numbers.formatDecimal(item.amount, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                    </div>
+                                </th:block>
+                                <div th:if="${report.revenueItems.isEmpty()}" class="text-sm text-gray-500 py-2">
+                                    Tidak ada pendapatan tercatat
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center py-3 mt-2 border-t border-gray-200 bg-green-50 px-3 rounded">
+                                <span class="text-sm font-semibold text-green-800">Total Pendapatan</span>
+                                <span id="total-revenue" class="text-sm font-mono font-semibold text-green-800" th:text="${#numbers.formatDecimal(report.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Expense Section -->
+                        <div class="mb-6">
+                            <h3 class="text-sm font-bold text-red-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-red-200">
+                                Biaya Langsung
+                            </h3>
+                            <div class="space-y-2">
+                                <th:block th:if="${!report.expenseItems.isEmpty()}">
+                                    <div th:each="item : ${report.expenseItems}" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded">
+                                        <span class="text-sm text-gray-700" th:text="${item.account.accountName}">Expense Account</span>
+                                        <span class="text-sm font-mono" th:text="'(' + ${#numbers.formatDecimal(item.amount, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                                    </div>
+                                </th:block>
+                                <div th:if="${report.expenseItems.isEmpty()}" class="text-sm text-gray-500 py-2">
+                                    Tidak ada biaya tercatat
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center py-3 mt-2 border-t border-gray-200 bg-red-50 px-3 rounded">
+                                <span class="text-sm font-semibold text-red-800">Total Biaya</span>
+                                <span id="total-expense" class="text-sm font-mono font-semibold text-red-800" th:text="'(' + ${#numbers.formatDecimal(report.totalExpense, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Profit Summary -->
+                        <div id="profit-summary" class="flex justify-between items-center py-4 px-4 rounded-lg border-2"
+                             th:classappend="${report.grossProfit.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'bg-accent-100 border-accent-300' : 'bg-red-100 border-red-300'">
+                            <div>
+                                <span id="profit-label" class="text-base font-bold"
+                                      th:classappend="${report.grossProfit.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-900' : 'text-red-900'"
+                                      th:text="${report.grossProfit.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'LABA KOTOR' : 'RUGI'">LABA KOTOR</span>
+                                <p class="text-sm mt-0.5"
+                                   th:classappend="${report.grossProfit.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-700' : 'text-red-700'">
+                                    Margin: <span id="profit-margin" th:text="${report.profitMargin + '%'}">0%</span>
+                                </p>
+                            </div>
+                            <span id="gross-profit" class="text-xl font-mono font-bold"
+                                  th:classappend="${report.grossProfit.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-900' : 'text-red-900'"
+                                  th:text="${#numbers.formatDecimal(report.grossProfit, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+    </section>
+</body>
+</html>

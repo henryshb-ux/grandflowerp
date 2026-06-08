@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Purchase Request', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head><title>Purchase Request</title></head>
+<body>
+<h1 id="page-title">Purchase Request (PR)</h1>
+
+<section class="space-y-6" data-testid="pr-list">
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-gray-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Draft</p>
+            <p class="text-3xl font-bold text-gray-600 mt-1" th:text="${summary.draftCount}">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Menunggu Persetujuan</p>
+            <p class="text-3xl font-bold text-yellow-600 mt-1" th:text="${summary.submittedCount}">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Disetujui</p>
+            <p class="text-3xl font-bold text-green-600 mt-1" th:text="${summary.approvedCount}">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-red-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Ditolak</p>
+            <p class="text-3xl font-bold text-red-600 mt-1" th:text="${summary.rejectedCount}">0</p>
+        </div>
+    </div>
+
+    <!-- Filter & Actions -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <form th:action="@{/purchase-requests}" method="get" class="flex flex-wrap items-center gap-2">
+            <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    onchange="this.form.submit()">
+                <option value="">Semua Status</option>
+                <option th:each="s : ${statuses}"
+                        th:value="${s.name()}" th:text="${s.label}"
+                        th:selected="${selectedStatus != null && selectedStatus.name() == s.name()}"></option>
+            </select>
+            <input type="text" name="search" th:value="${search}"
+                   placeholder="Cari nomor PR / perihal / pemohon..."
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-64">
+            <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">Cari</button>
+            <a th:if="${search != null || selectedStatus != null}" th:href="@{/purchase-requests}"
+               class="px-3 py-2 text-gray-500 hover:text-gray-700 text-sm">Reset</a>
+        </form>
+        <a th:href="@{/purchase-requests/new}"
+           sec:authorize="hasAuthority('INVOICE_CREATE')"
+           class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 whitespace-nowrap transition-colors">
+            + Buat PR Baru
+        </a>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. PR</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Perihal</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pemohon</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tgl Minta</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dibutuhkan</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Prioritas</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-4 py-3"></th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+            <tr th:if="${page.empty}">
+                <td colspan="8" class="px-4 py-10 text-center text-gray-400">
+                    <p class="text-base">Belum ada Purchase Request</p>
+                    <p class="text-sm mt-1">PR adalah permintaan pembelian internal sebelum membuat PO ke supplier</p>
+                </td>
+            </tr>
+            <tr th:each="pr : ${page.content}" class="hover:bg-gray-50">
+                <td class="px-4 py-3">
+                    <a th:href="@{/purchase-requests/{id}(id=${pr.id})}"
+                       class="text-primary-600 hover:underline font-mono font-medium"
+                       th:text="${pr.prNumber}">PR-2026-001</a>
+                </td>
+                <td class="px-4 py-3 max-w-xs truncate" th:text="${pr.subject ?: '—'}"></td>
+                <td class="px-4 py-3 text-gray-600" th:text="${pr.requestedBy ?: '—'}"></td>
+                <td class="px-4 py-3 whitespace-nowrap"
+                    th:text="${#temporals.format(pr.requestDate, 'dd MMM yyyy')}"></td>
+                <td class="px-4 py-3 whitespace-nowrap"
+                    th:if="${pr.requiredDate != null}"
+                    th:classappend="${pr.overdue ? 'text-red-600 font-medium' : 'text-gray-700'}"
+                    th:text="${#temporals.format(pr.requiredDate, 'dd MMM yyyy')}"></td>
+                <td class="px-4 py-3 text-gray-400 text-xs text-center"
+                    th:if="${pr.requiredDate == null}">—</td>
+                <!-- Prioritas -->
+                <td class="px-4 py-3 text-center">
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                          th:classappend="${
+                              pr.priority.name() == 'URGENT' ? 'bg-red-100 text-red-700'    :
+                              pr.priority.name() == 'HIGH'   ? 'bg-orange-100 text-orange-700':
+                              pr.priority.name() == 'NORMAL' ? 'bg-gray-100 text-gray-600'  :
+                                                                'bg-blue-50 text-blue-500'}"
+                          th:text="${pr.priority.label}"></span>
+                </td>
+                <!-- Status -->
+                <td class="px-4 py-3 text-center">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium"
+                          th:classappend="${
+                              pr.status.name() == 'DRAFT'     ? 'bg-gray-100 text-gray-600'    :
+                              pr.status.name() == 'SUBMITTED' ? 'bg-yellow-100 text-yellow-700' :
+                              pr.status.name() == 'APPROVED'  ? 'bg-green-100 text-green-700'   :
+                              pr.status.name() == 'REJECTED'  ? 'bg-red-100 text-red-700'       :
+                              pr.status.name() == 'ORDERED'   ? 'bg-blue-100 text-blue-700'     :
+                                                                 'bg-gray-100 text-gray-400'}"
+                          th:text="${pr.status.label}"></span>
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <a th:href="@{/purchase-requests/{id}(id=${pr.id})}"
+                       class="text-primary-600 hover:underline text-xs">Detail</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div th:if="${page.totalPages > 1}" class="flex items-center justify-between text-sm text-gray-500">
+        <p th:text="'Halaman ' + ${page.number + 1} + ' dari ' + ${page.totalPages}"></p>
+        <div class="flex gap-2">
+            <a th:if="${!page.first}"
+               th:href="@{/purchase-requests(page=${page.number - 1}, status=${selectedStatus}, search=${search})}"
+               class="px-3 py-1 border rounded hover:bg-gray-50">← Prev</a>
+            <a th:if="${!page.last}"
+               th:href="@{/purchase-requests(page=${page.number + 1}, status=${selectedStatus}, search=${search})}"
+               class="px-3 py-1 border rounded hover:bg-gray-50">Next →</a>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

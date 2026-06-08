@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Profitabilitas Klien', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Profitabilitas Klien</title>
+</head>
+<body>
+    <h1 id="page-title">Profitabilitas Klien</h1>
+
+    <section id="client-profitability-content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-4xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/reports}" class="hover:text-primary-600 transition-colors">Laporan</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900">Profitabilitas Klien</span>
+            </nav>
+
+            <!-- Filter Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <form th:action="@{/reports/client-profitability}" method="get" class="space-y-3">
+                    <div class="flex-1 min-w-[200px]">
+                        <label for="clientId" class="block text-sm font-medium text-gray-700 mb-1">Klien</label>
+                        <select id="clientId" name="clientId"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                            <option value="">-- Pilih Klien --</option>
+                            <th:block th:each="client : ${clients}">
+                                <option th:value="${client.id}"
+                                        th:text="${client.code + ' - ' + client.name}"
+                                        th:selected="${selectedClientId != null and selectedClientId.equals(client.id)}">Client</option>
+                            </th:block>
+                        </select>
+                    </div>
+                    <div th:replace="~{reports/fragments/period-selector :: period-selector('range')}"></div>
+                </form>
+            </div>
+
+            <!-- No Client Selected Message -->
+            <div id="no-client-selected" th:if="${selectedClientId == null}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <p class="text-gray-500">Pilih klien untuk melihat laporan profitabilitas</p>
+            </div>
+
+            <!-- Report Content -->
+            <th:block th:if="${report != null}">
+                <!-- Client Summary -->
+                <div id="client-summary" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 id="client-name" class="text-lg font-semibold text-gray-900" th:text="${report.client.name}">Client Name</h3>
+                            <p id="client-code" class="text-sm text-gray-500" th:text="${report.client.code}">CLI-001</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">Margin Keseluruhan</p>
+                            <p id="overall-margin" class="text-2xl font-bold"
+                               th:classappend="${report.overallMargin.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-600' : 'text-red-600'"
+                               th:text="${report.overallMargin + '%'}">0%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                        <p class="text-sm text-gray-500">Total Pendapatan</p>
+                        <p id="total-revenue" class="text-xl font-bold font-mono text-gray-900" th:text="${#numbers.formatDecimal(report.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                        <p class="text-sm text-gray-500">Total Laba</p>
+                        <p id="total-profit" class="text-xl font-bold font-mono"
+                           th:classappend="${report.totalProfit.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-600' : 'text-red-600'"
+                           th:text="${#numbers.formatDecimal(report.totalProfit, 1, 'POINT', 0, 'COMMA')}">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                        <p class="text-sm text-gray-500">Jumlah Proyek</p>
+                        <p id="project-count" class="text-xl font-bold text-gray-900" th:text="${#lists.size(report.projects)}">0</p>
+                    </div>
+                </div>
+
+                <!-- Projects Table -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h2 class="text-lg font-bold text-gray-900">Profitabilitas per Proyek</h2>
+                        <p class="text-sm text-gray-500 mt-1"
+                           th:text="'Periode: ' + ${#temporals.format(startDate, 'd MMMM yyyy')} + ' - ' + ${#temporals.format(endDate, 'd MMMM yyyy')}">
+                            Periode: 1 Jan - 31 Dec 2025
+                        </p>
+                    </div>
+
+                    <div th:if="${report.projects.isEmpty()}" class="p-8 text-center">
+                        <p class="text-gray-500">Tidak ada data proyek untuk periode ini</p>
+                    </div>
+
+                    <table id="projects-table" th:if="${!report.projects.isEmpty()}" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proyek</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Pendapatan</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Laba</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr th:each="prj : ${report.projects}" class="project-row hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-medium text-gray-900" th:text="${prj.project.name}">Project Name</div>
+                                    <div class="text-xs text-gray-500" th:text="${prj.project.code}">PRJ-001</div>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <span class="text-sm font-mono" th:text="${#numbers.formatDecimal(prj.revenue, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <span class="text-sm font-mono"
+                                          th:classappend="${prj.profit.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-600' : 'text-red-600'"
+                                          th:text="${#numbers.formatDecimal(prj.profit, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                          th:classappend="${prj.profitMargin.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'bg-accent-100 text-accent-800' : 'bg-red-100 text-red-800'"
+                                          th:text="${prj.profitMargin + '%'}">0%</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-gray-50">
+                            <tr>
+                                <td class="px-6 py-4 font-semibold text-gray-900">Total</td>
+                                <td class="px-6 py-4 text-right font-semibold font-mono" th:text="${#numbers.formatDecimal(report.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</td>
+                                <td class="px-6 py-4 text-right font-semibold font-mono"
+                                    th:classappend="${report.totalProfit.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-600' : 'text-red-600'"
+                                    th:text="${#numbers.formatDecimal(report.totalProfit, 1, 'POINT', 0, 'COMMA')}">0</td>
+                                <td class="px-6 py-4 text-right">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold"
+                                          th:classappend="${report.overallMargin.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'bg-accent-100 text-accent-800' : 'bg-red-100 text-red-800'"
+                                          th:text="${report.overallMargin + '%'}">0%</span>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </th:block>
+        </div>
+    </section>
+</body>
+</html>

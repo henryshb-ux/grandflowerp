@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Penutupan Tahun Buku', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title>Penutupan Tahun Buku</title>
+</head>
+<body>
+    <h1 id="page-title">Penutupan Tahun Buku</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-5xl">
+            <!-- Alert Messages -->
+            <div id="alert-success" th:if="${successMessage}" class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div class="flex">
+                    <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <span id="success-message" class="ml-2 text-green-700" th:text="${successMessage}">Success</span>
+                </div>
+            </div>
+            <div id="alert-error" th:if="${errorMessage}" class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex">
+                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    <span id="error-message" class="ml-2 text-red-700" th:text="${errorMessage}">Error</span>
+                </div>
+            </div>
+
+            <!-- Page Header with Year Selector -->
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <p class="text-gray-600">Tutup tahun buku dan transfer saldo laba ke laba ditahan</p>
+                </div>
+                <form th:action="@{/reports/fiscal-closing}" method="get" class="flex items-center gap-2">
+                    <label for="year" class="text-sm font-medium text-gray-700">Tahun:</label>
+                    <select id="year" name="year"
+                            class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 auto-submit">
+                        <option th:each="y : ${#numbers.sequence(2020, 2030)}"
+                                th:value="${y}" th:text="${y}"
+                                th:selected="${y == year}">2024</option>
+                    </select>
+                </form>
+            </div>
+
+            <!-- Status Badge -->
+            <div id="status-section" class="mb-6">
+                <div id="status-closed" th:if="${preview.alreadyClosed()}" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Tahun <span th:text="${year}">2024</span> sudah ditutup
+                </div>
+                <div id="status-open" th:unless="${preview.alreadyClosed()}" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Tahun <span th:text="${year}">2024</span> belum ditutup
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div id="card-revenue" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="text-sm text-gray-500">Total Pendapatan</div>
+                    <div class="text-xl font-bold text-green-600" th:text="${#numbers.formatDecimal(preview.totalRevenue(), 0, 'COMMA', 0, 'POINT')}">0</div>
+                </div>
+                <div id="card-expense" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="text-sm text-gray-500">Total Beban</div>
+                    <div class="text-xl font-bold text-red-600" th:text="${#numbers.formatDecimal(preview.totalExpense(), 0, 'COMMA', 0, 'POINT')}">0</div>
+                </div>
+                <div id="card-net-income" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="text-sm text-gray-500" th:text="${preview.netIncome().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'Laba Bersih' : 'Rugi Bersih'}">Laba/Rugi Bersih</div>
+                    <div class="text-xl font-bold"
+                         th:classappend="${preview.netIncome().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-blue-600' : 'text-red-600'}"
+                         th:text="${#numbers.formatDecimal(preview.netIncome(), 0, 'COMMA', 0, 'POINT')}">0</div>
+                </div>
+            </div>
+
+            <!-- Preview of Closing Entries -->
+            <div id="preview-section" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 id="preview-title" class="text-lg font-semibold text-gray-900">Preview Jurnal Penutup</h2>
+                    <p class="text-sm text-gray-600">Jurnal yang akan dibuat saat penutupan</p>
+                </div>
+
+                <div th:if="${#lists.isEmpty(preview.entries())}" class="p-6 text-center text-gray-500">
+                    Tidak ada jurnal penutup yang diperlukan (tidak ada transaksi pada tahun ini)
+                </div>
+
+                <div th:each="entry : ${preview.entries()}" class="border-b border-gray-200 last:border-b-0">
+                    <div class="px-6 py-3 bg-gray-50">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="font-medium text-gray-900" th:text="${entry.description()}">Tutup Pendapatan</span>
+                                <span class="ml-2 text-sm text-gray-500" th:text="${entry.referenceNumber()}">CLOSING-2024-01</span>
+                            </div>
+                            <span class="text-sm text-gray-500" th:text="${#temporals.format(entry.date(), 'dd/MM/yyyy')}">31/12/2024</span>
+                        </div>
+                    </div>
+                    <table class="min-w-full">
+                        <thead class="sr-only">
+                            <tr>
+                                <th scope="col">Kode Akun</th>
+                                <th scope="col">Nama Akun</th>
+                                <th scope="col">Debit</th>
+                                <th scope="col">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="line : ${entry.lines()}" class="hover:bg-gray-50">
+                                <td class="px-6 py-2 text-sm text-gray-500 w-20" th:text="${line.accountCode()}">4.1.01</td>
+                                <td class="px-6 py-2 text-sm text-gray-900" th:text="${line.accountName()}">Pendapatan Jasa</td>
+                                <td class="px-6 py-2 text-sm text-right w-36"
+                                    th:text="${line.debit().compareTo(T(java.math.BigDecimal).ZERO) > 0 ? #numbers.formatDecimal(line.debit(), 0, 'COMMA', 0, 'POINT') : ''}">0</td>
+                                <td class="px-6 py-2 text-sm text-right w-36"
+                                    th:text="${line.credit().compareTo(T(java.math.BigDecimal).ZERO) > 0 ? #numbers.formatDecimal(line.credit(), 0, 'COMMA', 0, 'POINT') : ''}">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div id="action-buttons" class="flex gap-4">
+                <div th:unless="${preview.alreadyClosed()}">
+                    <form id="form-execute" th:action="@{/reports/fiscal-closing/{year}/execute(year=${year})}" method="post">
+                        <button id="btn-execute" type="submit"
+                                th:disabled="${#lists.isEmpty(preview.entries())}"
+                                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Eksekusi Penutupan
+                        </button>
+                    </form>
+                </div>
+                <div th:if="${preview.alreadyClosed()}">
+                    <button id="btn-reverse" type="button"
+                            class="inline-flex items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                        </svg>
+                        Batalkan Penutupan
+                    </button>
+                </div>
+            </div>
+
+            <!-- Explanation -->
+            <div id="explanation-section" class="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h3 id="explanation-title" class="text-sm font-medium text-blue-900 mb-2">Proses Penutupan Tahun Buku</h3>
+                <ol class="text-sm text-blue-800 list-decimal list-inside space-y-1">
+                    <li>Tutup semua akun pendapatan (4.x) ke Laba Berjalan (3.2.02)</li>
+                    <li>Tutup semua akun beban (5.x) ke Laba Berjalan (3.2.02)</li>
+                    <li>Transfer Laba Berjalan ke Laba Ditahan (3.2.01)</li>
+                </ol>
+                <p class="text-sm text-blue-700 mt-2">
+                    Setelah penutupan, saldo akun pendapatan dan beban menjadi nol untuk tahun buku berikutnya.
+                </p>
+            </div>
+        </div>
+
+        <!-- Reverse Modal -->
+        <div id="reverseModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Batalkan Penutupan Tahun <span th:text="${year}">2024</span></h3>
+                    <form th:action="@{/reports/fiscal-closing/{year}/reverse(year=${year})}" method="post">
+                        <div class="mb-4">
+                            <label for="reason" class="block text-sm font-medium text-gray-700 mb-1">Alasan Pembatalan</label>
+                            <textarea id="reason" name="reason" rows="3" required
+                                      class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                      placeholder="Jelaskan alasan pembatalan..."></textarea>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button id="btn-cancel-reverse" type="button"
+                                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+                                Batal
+                            </button>
+                            <button id="btn-confirm-reverse" type="submit"
+                                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
+                                Batalkan Penutupan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            const year = /*[[${year}]]*/ 2024;
+            document.getElementById('form-execute')?.addEventListener('submit', function(e) {
+                if (!confirm('Apakah Anda yakin ingin menutup tahun buku ' + year + '?')) {
+                    e.preventDefault();
+                }
+            });
+            document.getElementById('btn-reverse')?.addEventListener('click', function() {
+                document.getElementById('reverseModal').classList.remove('hidden');
+            });
+            document.getElementById('btn-cancel-reverse')?.addEventListener('click', function() {
+                document.getElementById('reverseModal').classList.add('hidden');
+            });
+            document.querySelectorAll('.auto-submit').forEach(el => {
+                el.addEventListener('change', function() { this.form.submit(); });
+            });
+        </script>
+</body>
+</html>

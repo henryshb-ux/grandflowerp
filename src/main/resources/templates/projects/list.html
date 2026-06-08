@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Daftar Proyek', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Daftar Proyek</title>
+</head>
+<body>
+    <h1 id="page-title">Daftar Proyek</h1>
+
+    <section class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-4">
+                <!-- Search -->
+                <div class="relative">
+                    <input type="text"
+                           id="search-input"
+                           name="search"
+                           th:value="${search}"
+                           placeholder="Cari proyek..."
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                           hx-get="/projects"
+                           hx-trigger="keyup changed delay:300ms"
+                           hx-target="#project-table"
+                           hx-swap="outerHTML"
+                           hx-include="[name='status'],[name='clientId']">
+                    <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+
+                <!-- Filter Status -->
+                <select name="status"
+                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                        hx-get="/projects"
+                        hx-trigger="change"
+                        hx-target="#project-table"
+                        hx-swap="outerHTML"
+                        hx-include="[name='search'],[name='clientId']">
+                    <option value="" th:selected="${status == null}">Semua Status</option>
+                    <option th:each="s : ${statuses}"
+                            th:value="${s.name()}"
+                            th:text="${s.indonesianName}"
+                            th:selected="${status == s}">Status</option>
+                </select>
+
+                <!-- Filter Client (combobox + HTMX live-trigger via picker:selected) -->
+                <div x-data="clientPicker"
+                     class="relative"
+                     th:data-initial-id="${clientId}"
+                     th:data-initial-label="${clientLabel}"
+                     hx-get="/projects"
+                     hx-trigger="picker:selected"
+                     hx-target="#project-table"
+                     hx-swap="outerHTML"
+                     hx-include="[name='search'],[name='status'],input[name='clientId']">
+                    <input type="text" x-model="label"
+                           @input.debounce.300ms="search()"
+                           @focus="focusPicker()"
+                           @click.away="open = false"
+                           autocomplete="off"
+                           placeholder="Semua Klien"
+                           class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    <input type="hidden" name="clientId" :value="selectedId">
+                    <div x-show="open &amp;&amp; results.length > 0"
+                         class="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                        <template x-for="c in results" :key="c.id">
+                            <button type="button"
+                                    @click="select(c); $dispatch('picker:selected')"
+                                    data-testid="client-picker-result"
+                                    class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                <span class="font-medium" x-text="c.code"></span>
+                                <span class="text-gray-500"> — </span>
+                                <span x-text="c.name"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <a sec:authorize="hasAuthority('PROJECT_CREATE')" th:href="@{/projects/new}"
+               id="btn-new-project"
+               class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Proyek Baru
+            </a>
+        </div>
+
+        <!-- Project Table -->
+        <div class="bg-white rounded-lg shadow">
+            <th:block th:insert="~{projects/fragments/project-table :: table}"/>
+        </div>
+    </section>
+</body>
+</html>

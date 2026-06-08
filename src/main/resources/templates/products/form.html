@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout(${product.id != null ? 'Edit Produk' : 'Produk Baru'}, ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title th:text="${product.id != null ? 'Edit Produk' : 'Produk Baru'}">Produk</title>
+</head>
+<body>
+    <h1 id="page-title" th:text="${product.id != null ? 'Edit Produk' : 'Produk Baru'}">Produk</h1>
+
+    <section class="max-w-4xl">
+        <div class="bg-white rounded-lg shadow p-6">
+            <form th:action="${product.id != null ? '/products/' + product.id + '/edit' : '/products/new'}"
+                  th:object="${product}"
+                  method="post" class="space-y-6">
+
+                <!-- Validation Errors -->
+                <div th:if="${#fields.hasErrors('*')}" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p class="text-sm text-red-600 font-medium">Terdapat kesalahan:</p>
+                    <ul class="mt-2 text-sm text-red-600 list-disc list-inside">
+                        <li th:each="err : ${#fields.errors('*')}" th:text="${err}">Error</li>
+                    </ul>
+                </div>
+
+                <!-- Basic Information Section -->
+                <div class="border-b pb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Dasar</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Code -->
+                        <div>
+                            <label for="code" class="block text-sm font-medium text-gray-700 mb-1">Kode Produk *</label>
+                            <input type="text" id="code" th:field="*{code}" maxlength="50"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   th:classappend="${#fields.hasErrors('code')} ? 'border-red-500' : ''"
+                                   placeholder="PRD001" required>
+                            <p th:if="${#fields.hasErrors('code')}" th:errors="*{code}" class="mt-1 text-sm text-red-500"></p>
+                        </div>
+
+                        <!-- Name -->
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama Produk *</label>
+                            <input type="text" id="name" th:field="*{name}" maxlength="200"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   th:classappend="${#fields.hasErrors('name')} ? 'border-red-500' : ''"
+                                   placeholder="Nama produk" required>
+                            <p th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="mt-1 text-sm text-red-500"></p>
+                        </div>
+
+                        <!-- Unit -->
+                        <div>
+                            <label for="unit" class="block text-sm font-medium text-gray-700 mb-1">Satuan *</label>
+                            <input type="text" id="unit" th:field="*{unit}" maxlength="20"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   th:classappend="${#fields.hasErrors('unit')} ? 'border-red-500' : ''"
+                                   placeholder="pcs, kg, liter" required>
+                            <p th:if="${#fields.hasErrors('unit')}" th:errors="*{unit}" class="mt-1 text-sm text-red-500"></p>
+                        </div>
+
+                        <!-- Category -->
+                        <div>
+                            <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                            <select id="category" th:field="*{category}"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white">
+                                <option value="">-- Pilih Kategori --</option>
+                                <option th:each="cat : ${categories}"
+                                        th:value="${cat.id}"
+                                        th:text="${cat.code + ' - ' + cat.name}">Kategori</option>
+                            </select>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="md:col-span-2">
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+                            <textarea id="description" th:field="*{description}" rows="2" maxlength="500"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                      placeholder="Deskripsi produk"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory Section -->
+                <div class="border-b pb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Pengaturan Inventori</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Track Inventory -->
+                        <div class="flex items-center">
+                            <input type="checkbox" id="trackInventory" th:field="*{trackInventory}"
+                                   class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                            <label for="trackInventory" class="ml-2 block text-sm text-gray-900">Lacak Inventori</label>
+                        </div>
+
+                        <!-- Costing Method -->
+                        <div>
+                            <label for="costingMethod" class="block text-sm font-medium text-gray-700 mb-1">Metode Perhitungan Biaya *</label>
+                            <select id="costingMethod" th:field="*{costingMethod}"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white" required>
+                                <option th:each="cm : ${costingMethods}"
+                                        th:value="${cm.name()}"
+                                        th:text="${cm.displayName}">Method</option>
+                            </select>
+                            <p th:if="${#fields.hasErrors('costingMethod')}" th:errors="*{costingMethod}" class="mt-1 text-sm text-red-500"></p>
+                        </div>
+
+                        <!-- Minimum Stock -->
+                        <div>
+                            <label for="minimumStock" class="block text-sm font-medium text-gray-700 mb-1">Stok Minimum</label>
+                            <input type="number" id="minimumStock" th:field="*{minimumStock}" step="0.0001" min="0"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="0">
+                            <p class="mt-1 text-xs text-gray-500">Stok minimum untuk peringatan</p>
+                        </div>
+
+                        <!-- Selling Price -->
+                        <div>
+                            <label for="sellingPrice" class="block text-sm font-medium text-gray-700 mb-1">Harga Jual</label>
+                            <input type="number" id="sellingPrice" th:field="*{sellingPrice}" step="1" min="0"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Mapping Section -->
+                <div class="border-b pb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Pemetaan Akun</h3>
+                    <p class="text-sm text-gray-500 mb-4">Akun-akun ini digunakan untuk pembuatan jurnal otomatis saat transaksi inventori</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Inventory Account -->
+                        <div>
+                            <label for="inventoryAccount" class="block text-sm font-medium text-gray-700 mb-1">Akun Inventori</label>
+                            <select id="inventoryAccount" th:field="*{inventoryAccount}"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white">
+                                <option value="">-- Pilih Akun --</option>
+                                <option th:each="acc : ${inventoryAccounts}"
+                                        th:value="${acc.id}"
+                                        th:text="${acc.accountCode + ' - ' + acc.accountName}">Akun</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Akun Aset untuk persediaan</p>
+                        </div>
+
+                        <!-- COGS Account -->
+                        <div>
+                            <label for="cogsAccount" class="block text-sm font-medium text-gray-700 mb-1">Akun HPP</label>
+                            <select id="cogsAccount" th:field="*{cogsAccount}"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white">
+                                <option value="">-- Pilih Akun --</option>
+                                <option th:each="acc : ${cogsAccounts}"
+                                        th:value="${acc.id}"
+                                        th:text="${acc.accountCode + ' - ' + acc.accountName}">Akun</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Akun Beban untuk HPP</p>
+                        </div>
+
+                        <!-- Sales Account -->
+                        <div>
+                            <label for="salesAccount" class="block text-sm font-medium text-gray-700 mb-1">Akun Penjualan</label>
+                            <select id="salesAccount" th:field="*{salesAccount}"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white">
+                                <option value="">-- Pilih Akun --</option>
+                                <option th:each="acc : ${salesAccounts}"
+                                        th:value="${acc.id}"
+                                        th:text="${acc.accountCode + ' - ' + acc.accountName}">Akun</option>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Akun Pendapatan untuk penjualan</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Status -->
+                <div class="flex items-center">
+                    <input type="checkbox" id="active" th:field="*{active}"
+                           class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                    <label for="active" class="ml-2 block text-sm text-gray-900">Produk Aktif</label>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t">
+                    <a th:href="${product.id != null ? '/products/' + product.id : '/products'}"
+                       class="px-4 py-2 text-gray-600 hover:text-gray-900">Batal</a>
+                    <button id="btn-simpan" type="submit"
+                            class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+</body>
+</html>

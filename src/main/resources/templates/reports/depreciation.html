@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Laporan Penyusutan', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title>Laporan Penyusutan</title>
+</head>
+<body>
+    <h1 id="page-title">Laporan Penyusutan</h1>
+
+    <section class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-7xl">
+            <!-- Page Header with Year Selector -->
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <p class="text-gray-600">Laporan penyusutan aset tetap untuk lampiran SPT Tahunan</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <form th:action="@{/reports/depreciation}" method="get" class="flex items-center gap-2">
+                        <label for="year" class="text-sm font-medium text-gray-700">Tahun:</label>
+                        <select id="year" name="year"
+                                class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 auto-submit">
+                            <option th:each="y : ${#numbers.sequence(2020, 2030)}"
+                                    th:value="${y}" th:text="${y}"
+                                    th:selected="${y == year}">2024</option>
+                        </select>
+                    </form>
+                    <div class="flex gap-2">
+                        <a th:href="@{/reports/depreciation/export/pdf(year=${year})}"
+                           class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            PDF
+                        </a>
+                        <a th:href="@{/reports/depreciation/export/excel(year=${year})}"
+                           class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Excel
+                        </a>
+                        <a th:href="@{/reports/depreciation/print(year=${year})}" target="_blank"
+                           class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                            </svg>
+                            Cetak
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div id="summary-cards" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div id="card-purchase-cost" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="text-sm text-gray-500">Total Nilai Perolehan</div>
+                    <div class="text-xl font-bold text-gray-900" th:text="${#numbers.formatDecimal(report.totalPurchaseCost(), 0, 'COMMA', 0, 'POINT')}">0</div>
+                </div>
+                <div id="card-depreciation-year" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="text-sm text-gray-500">Penyusutan Tahun Ini</div>
+                    <div class="text-xl font-bold text-amber-600" th:text="${#numbers.formatDecimal(report.totalDepreciationThisYear(), 0, 'COMMA', 0, 'POINT')}">0</div>
+                </div>
+                <div id="card-accumulated" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="text-sm text-gray-500">Akumulasi Penyusutan</div>
+                    <div class="text-xl font-bold text-red-600" th:text="${#numbers.formatDecimal(report.totalAccumulatedDepreciation(), 0, 'COMMA', 0, 'POINT')}">0</div>
+                </div>
+                <div id="card-book-value" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div class="text-sm text-gray-500">Total Nilai Buku</div>
+                    <div class="text-xl font-bold text-green-600" th:text="${#numbers.formatDecimal(report.totalBookValue(), 0, 'COMMA', 0, 'POINT')}">0</div>
+                </div>
+            </div>
+
+            <!-- Report Table -->
+            <div id="report-table-container" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table id="depreciation-table" class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Aset</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tgl Perolehan</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Perolehan</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Masa Manfaat</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metode</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Penyusutan Tahun Ini</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Akum. Penyusutan</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Nilai Buku</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr th:each="item, iterStat : ${report.items()}" class="hover:bg-gray-50">
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${iterStat.count}">1</td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900" th:text="${item.assetName()}">Laptop Dell</div>
+                                    <div class="text-xs text-gray-500" th:text="${item.assetCode()}">FA-001</div>
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${item.categoryName()}">Komputer</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${#temporals.format(item.purchaseDate(), 'dd/MM/yyyy')}">01/01/2024</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right" th:text="${#numbers.formatDecimal(item.purchaseCost(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center" th:text="${item.usefulLifeYears() + ' tahun'}">4 tahun</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${item.depreciationMethod()}">Garis Lurus</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-amber-600 text-right" th:text="${#numbers.formatDecimal(item.depreciationThisYear(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-red-600 text-right" th:text="${#numbers.formatDecimal(item.accumulatedDepreciation(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-green-600 text-right" th:text="${#numbers.formatDecimal(item.bookValue(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(report.items())}">
+                                <td colspan="10" class="px-4 py-8 text-center text-gray-500">
+                                    Tidak ada data aset tetap untuk tahun ini
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-gray-100">
+                            <tr class="font-bold">
+                                <td colspan="4" class="px-4 py-3 text-right text-sm text-gray-900">TOTAL</td>
+                                <td class="px-4 py-3 text-right text-sm text-gray-900" th:text="${#numbers.formatDecimal(report.totalPurchaseCost(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td colspan="2"></td>
+                                <td class="px-4 py-3 text-right text-sm text-amber-700" th:text="${#numbers.formatDecimal(report.totalDepreciationThisYear(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 text-right text-sm text-red-700" th:text="${#numbers.formatDecimal(report.totalAccumulatedDepreciation(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                                <td class="px-4 py-3 text-right text-sm text-green-700" th:text="${#numbers.formatDecimal(report.totalBookValue(), 0, 'COMMA', 0, 'POINT')}">0</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Note -->
+            <div class="mt-4 text-sm text-gray-500">
+                <p>Laporan ini sesuai format Lampiran Khusus 1A SPT Tahunan Badan</p>
+            </div>
+        </div>
+    </section>
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.querySelectorAll('.auto-submit').forEach(el => {
+                el.addEventListener('change', function() { this.form.submit(); });
+            });
+        </script>
+</body>
+</html>

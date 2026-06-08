@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neraca Saldo</title>
+    <style th:insert="~{fragments/print-styles :: base}" th:attr="nonce=${cspNonce}">/* loaded via Thymeleaf */</style>
+    <style th:attr="nonce=${cspNonce}">
+        @page { size: A4; margin: 12mm; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
+        th { background: #f9fafb; font-weight: 600; font-size: 8pt; text-transform: uppercase; color: #6b7280; letter-spacing: 0.3px; padding: 2.5mm 3mm; text-align: left; border-bottom: 2px solid #e5e7eb; }
+        th.text-right { text-align: right; }
+        td { padding: 2mm 3mm; border-bottom: 1px solid #f3f4f6; font-size: 9pt; }
+        td.text-right { text-align: right; font-family: 'Consolas', monospace; }
+        tr:hover { background: #f9fafb; }
+
+        /* Account Code */
+        .account-code { font-family: 'Consolas', monospace; color: #6b7280; font-size: 8pt; }
+
+        /* Total Row */
+        .total-row { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; font-weight: 700; }
+        .total-row td { border: none; padding: 3mm; font-size: 10pt; }
+
+        /* Balance Status */
+        .balance-status { margin-top: 4mm; padding: 3mm; border-radius: 4px; text-align: center; font-weight: 600; font-size: 9pt; }
+        .balance-status.balanced { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .balance-status.unbalanced { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        /* Alternate row colors for better readability */
+        tbody tr:nth-child(even) { background: #fafafa; }
+
+        /* Column widths */
+        .w-15 { width: 15%; }
+        .w-20 { width: 20%; }
+        .w-45 { width: 45%; }
+
+        /* Empty state */
+        .empty-state { text-align: center; color: #9ca3af; padding: 4mm; }
+    </style>
+</head>
+<body>
+    <div class="print-controls">
+        <a th:href="@{/reports/trial-balance(asOfDate=${asOfDate})}" class="btn btn-back">Kembali</a>
+        <button id="btn-print" class="btn btn-print">Cetak</button>
+    </div>
+    <script th:attr="nonce=${cspNonce}">
+        document.getElementById('btn-print').addEventListener('click', function() { globalThis.print(); });
+    </script>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-info">
+                <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{${company.companyLogoPath}}" alt="Logo" class="company-logo">
+                <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{${theme.logoPath}}" alt="Logo" class="company-logo">
+                <div class="company-name" th:text="${company.companyName}">Nama Perusahaan</div>
+                <div class="company-details">
+                    <span th:if="${company.companyAddress}" th:text="${company.companyAddress}">Alamat</span><br th:if="${company.companyAddress}">
+                    <span th:if="${company.companyPhone}">Tel: [[${company.companyPhone}]]</span>
+                    <span th:if="${company.companyPhone != null and company.companyEmail != null}"> | </span>
+                    <span th:if="${company.companyEmail}" th:text="${company.companyEmail}">email</span><br th:if="${company.companyPhone != null or company.companyEmail != null}">
+                    <span th:if="${company.taxId}">NPWP: [[${company.taxId}]]</span>
+                </div>
+            </div>
+            <div class="report-title-section">
+                <div class="report-title">NERACA SALDO</div>
+                <div class="report-subtitle">Trial Balance</div>
+                <div class="report-period" th:text="'Per ' + ${#temporals.format(asOfDate, 'd MMMM yyyy')}">Per 31 Desember 2025</div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <table>
+            <thead>
+                <tr>
+                    <th class="w-15">Kode</th>
+                    <th class="w-45">Nama Akun</th>
+                    <th class="text-right w-20">Debit</th>
+                    <th class="text-right w-20">Kredit</th>
+                </tr>
+            </thead>
+            <tbody>
+                <th:block th:if="${report != null and !report.items.isEmpty()}">
+                    <tr th:each="item : ${report.items}">
+                        <td class="account-code" th:text="${item.account.accountCode}">1000</td>
+                        <td th:text="${item.account.accountName}">Nama Akun</td>
+                        <td class="text-right" th:text="${item.debitBalance != null and item.debitBalance.compareTo(T(java.math.BigDecimal).ZERO) != 0} ? ${#numbers.formatDecimal(item.debitBalance, 1, 'POINT', 0, 'COMMA')} : '-'">0</td>
+                        <td class="text-right" th:text="${item.creditBalance != null and item.creditBalance.compareTo(T(java.math.BigDecimal).ZERO) != 0} ? ${#numbers.formatDecimal(item.creditBalance, 1, 'POINT', 0, 'COMMA')} : '-'">0</td>
+                    </tr>
+                </th:block>
+                <tr th:if="${report == null or report.items.isEmpty()}">
+                    <td colspan="4" class="empty-state">Tidak ada data</td>
+                </tr>
+            </tbody>
+            <tfoot th:if="${report != null}">
+                <tr class="total-row">
+                    <td colspan="2">TOTAL</td>
+                    <td class="text-right" th:text="${#numbers.formatDecimal(report.totalDebit, 1, 'POINT', 0, 'COMMA')}">0</td>
+                    <td class="text-right" th:text="${#numbers.formatDecimal(report.totalCredit, 1, 'POINT', 0, 'COMMA')}">0</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <!-- Balance Status -->
+        <div th:if="${report != null}" class="balance-status"
+             th:classappend="${report.totalDebit.compareTo(report.totalCredit) == 0} ? 'balanced' : 'unbalanced'"
+             th:text="${report.totalDebit.compareTo(report.totalCredit) == 0} ? '✓ Balance - Total Debit = Total Kredit' : '⚠ Tidak Balance - Selisih: ' + ${#numbers.formatDecimal(report.totalDebit.subtract(report.totalCredit).abs(), 1, 'POINT', 0, 'COMMA')}">
+            Balance Status
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <span th:text="'Dicetak: ' + ${#temporals.format(#temporals.createNow(), 'dd MMMM yyyy HH:mm')}">Dicetak: 01 Jan 2025</span>
+            <span th:text="${company.companyName}">Nama Perusahaan</span>
+        </div>
+    </div>
+</body>
+</html>

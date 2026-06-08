@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Laporan Laba Rugi', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Laporan Laba Rugi</title>
+</head>
+<body>
+    <h1 id="page-title">Laporan Laba Rugi</h1>
+
+    <section id="income-statement-content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-4xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/reports}" class="hover:text-primary-600 transition-colors">Laporan</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900">Laporan Laba Rugi</span>
+            </nav>
+
+            <!-- Filter Section -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <form th:action="@{/reports/income-statement}" method="get" class="space-y-3">
+                    <div th:replace="~{reports/fragments/period-selector :: period-selector('range')}"></div>
+                </form>
+            </div>
+
+            <!-- Report -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <!-- Report Header -->
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 id="report-title" class="text-lg font-bold text-gray-900">LAPORAN LABA RUGI</h2>
+                            <p class="text-sm text-gray-600">Income Statement</p>
+                            <p id="report-period" class="text-sm text-gray-500 mt-1"
+                               th:text="'Periode: ' + ${#temporals.format(startDate, 'd MMMM yyyy')} + ' - ' + ${#temporals.format(endDate, 'd MMMM yyyy')}">
+                                Periode: 1 - 30 November 2025
+                            </p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <a id="btn-export-pdf" th:href="@{/reports/income-statement/export/pdf(startDate=${startDate}, endDate=${endDate})}"
+                               class="px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                    </svg>
+                                    PDF
+                                </span>
+                            </a>
+                            <a id="btn-export-excel" th:href="@{/reports/income-statement/export/excel(startDate=${startDate}, endDate=${endDate})}"
+                               class="px-3 py-1.5 text-xs font-medium text-green-700 bg-white border border-green-300 rounded-lg hover:bg-green-50 transition-colors">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Excel
+                                </span>
+                            </a>
+                            <a id="btn-print" th:href="@{/reports/income-statement/print(startDate=${startDate}, endDate=${endDate})}"
+                               target="_blank"
+                               class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                    </svg>
+                                    Cetak
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Content -->
+                <div class="p-6">
+                    <!-- PENDAPATAN Section -->
+                    <div class="mb-6">
+                        <h3 class="text-sm font-bold text-green-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-green-200">
+                            Pendapatan
+                        </h3>
+                        <div class="space-y-2" id="revenue-items">
+                            <th:block th:if="${report != null and !report.revenueItems.isEmpty()}">
+                                <div th:each="item : ${report.revenueItems}" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded revenue-row">
+                                    <span class="text-sm text-gray-700 account-name" th:text="${item.account.accountName}">Pendapatan</span>
+                                    <span class="text-sm font-mono revenue-balance" th:text="${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                </div>
+                            </th:block>
+                            <div th:if="${report == null or report.revenueItems.isEmpty()}" class="text-sm text-gray-500 py-2">
+                                Tidak ada pendapatan
+                            </div>
+                        </div>
+                        <div th:if="${report != null}" class="flex justify-between items-center py-3 mt-2 border-t border-gray-200 bg-green-50 px-3 rounded">
+                            <span class="text-sm font-semibold text-green-800">Total Pendapatan</span>
+                            <span id="total-revenue" class="text-sm font-mono font-semibold text-green-800" th:text="${#numbers.formatDecimal(report.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                    </div>
+
+                    <!-- BEBAN Section -->
+                    <div class="mb-6">
+                        <h3 class="text-sm font-bold text-red-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-red-200">
+                            Beban Operasional
+                        </h3>
+                        <div class="space-y-2" id="expense-items">
+                            <th:block th:if="${report != null and !report.expenseItems.isEmpty()}">
+                                <div th:each="item : ${report.expenseItems}" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded expense-row">
+                                    <span class="text-sm text-gray-700 account-name" th:text="${item.account.accountName}">Beban</span>
+                                    <span class="text-sm font-mono expense-balance" th:text="'(' + ${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                                </div>
+                            </th:block>
+                            <div th:if="${report == null or report.expenseItems.isEmpty()}" class="text-sm text-gray-500 py-2">
+                                Tidak ada beban
+                            </div>
+                        </div>
+                        <div th:if="${report != null}" class="flex justify-between items-center py-3 mt-2 border-t border-gray-200 bg-red-50 px-3 rounded">
+                            <span class="text-sm font-semibold text-red-800">Total Beban Operasional</span>
+                            <span id="total-expense" class="text-sm font-mono font-semibold text-red-800" th:text="'(' + ${#numbers.formatDecimal(report.totalExpense, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                        </div>
+                    </div>
+
+                    <!-- LABA BERSIH -->
+                    <div th:if="${report != null}" class="flex justify-between items-center py-4 px-4 rounded-lg border-2"
+                         th:classappend="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'bg-accent-100 border-accent-300' : 'bg-red-100 border-red-300'">
+                        <div>
+                            <span class="text-base font-bold"
+                                  th:classappend="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-900' : 'text-red-900'"
+                                  th:text="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'LABA BERSIH' : 'RUGI BERSIH'">LABA BERSIH</span>
+                            <p class="text-xs mt-0.5"
+                               th:classappend="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-700' : 'text-red-700'"
+                               th:text="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'Net Profit' : 'Net Loss'">Net Profit</p>
+                        </div>
+                        <span id="net-income" class="text-xl font-mono font-bold"
+                              th:classappend="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-900' : 'text-red-900'"
+                              th:text="${#numbers.formatDecimal(report.netIncome, 1, 'POINT', 0, 'COMMA')}">0</span>
+                    </div>
+
+                    <!-- Profit Status -->
+                    <div th:if="${report != null}" id="profit-status" class="mt-4 p-4 rounded-lg border text-center"
+                         th:classappend="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'bg-accent-50 border-accent-200' : 'bg-red-50 border-red-200'">
+                        <div class="flex items-center justify-center"
+                             th:classappend="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-700' : 'text-red-700'">
+                            <svg th:if="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0}" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <svg th:unless="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0}" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <span id="profit-message" class="font-medium"
+                                  th:text="${report.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'Perusahaan menghasilkan laba pada periode ini' : 'Perusahaan mengalami kerugian pada periode ini'">
+                                Perusahaan menghasilkan laba pada periode ini
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Bukti Potong 1721-A1', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title>Bukti Potong 1721-A1</title>
+</head>
+<body>
+    <h1 id="page-title">
+        Bukti Potong PPh 21 (1721-A1)
+    </h1>
+
+    <section class="space-y-6">
+        <!-- Year Filter -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-center space-x-4">
+                <label for="year-select" class="text-sm font-medium text-gray-700">Tahun:</label>
+                <select id="year-select" name="year"
+                        class="rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                    <option th:each="y : ${yearOptions}" th:value="${y}" th:text="${y}" th:selected="${y == selectedYear}">2025</option>
+                </select>
+            </div>
+            <a th:href="@{/payroll}" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                Kembali ke Payroll
+            </a>
+        </div>
+
+        <!-- Info Box -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 class="text-sm font-medium text-blue-900 mb-1">Tentang Formulir 1721-A1</h4>
+            <p class="text-sm text-blue-700">
+                Bukti Pemotongan PPh 21 (1721-A1) adalah dokumen resmi yang diberikan kepada karyawan sebagai bukti
+                bahwa PPh 21 telah dipotong dari penghasilan mereka selama tahun pajak. Dokumen ini diperlukan
+                untuk pelaporan SPT Tahunan PPh Orang Pribadi.
+            </p>
+        </div>
+
+        <!-- Employee List -->
+        <div th:if="${summaries.isEmpty()}" class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+            <svg class="mx-auto h-12 w-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">Tidak ada data payroll</h3>
+            <p class="mt-1 text-sm text-gray-500" th:text="${'Tidak ada payroll yang di-posting untuk tahun ' + selectedYear}">Tidak ada payroll yang di-posting untuk tahun ini</p>
+        </div>
+
+        <div th:if="${!summaries.isEmpty()}" class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900" th:text="${'Daftar Karyawan - Tahun ' + selectedYear}">Daftar Karyawan - Tahun 2025</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table data-testid="bukti-potong-table" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">NPWP</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Bulan</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Penghasilan Bruto</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">PPh 21</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr th:each="summary : ${summaries}">
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900" th:text="${summary.employee().getEmployeeId()}">EMP001</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${summary.employee().getName()}">John Doe</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-600" th:text="${summary.employee().getNpwp() ?: '-'}">12.345.678.9-012.345</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900" th:text="${summary.monthCount()}">12</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(summary.totalGross(), 0, 'COMMA', 0, 'POINT')}">Rp 120,000,000</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900"
+                                th:text="${'Rp ' + #numbers.formatDecimal(summary.totalPph21(), 0, 'COMMA', 0, 'POINT')}">Rp 2,820,000</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-center">
+                                <a th:href="@{/payroll/bukti-potong/{empId}/{year}/pdf(empId=${summary.employee().getId()}, year=${selectedYear})}"
+                                   class="inline-flex items-center px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Download PDF
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="text-sm font-medium text-gray-900 mb-2">Keterangan:</h4>
+            <ul class="text-xs text-gray-600 space-y-1">
+                <li>Bukti Potong 1721-A1 hanya tersedia untuk karyawan dengan payroll yang sudah di-posting</li>
+                <li>Dokumen ini wajib diberikan kepada karyawan paling lambat 1 bulan setelah tahun pajak berakhir</li>
+                <li>Karyawan menggunakan dokumen ini untuk melaporkan SPT Tahunan PPh Orang Pribadi</li>
+            </ul>
+        </div>
+    </section>
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.getElementById('year-select')?.addEventListener('change', function() {
+                globalThis.location.href = '/payroll/bukti-potong?year=' + this.value;
+            });
+        </script>
+</body>
+</html>

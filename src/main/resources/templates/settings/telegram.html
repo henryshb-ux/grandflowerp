@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Pengaturan Telegram', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title>Pengaturan Telegram</title>
+</head>
+<body>
+    <h1 id="page-title">Pengaturan Telegram</h1>
+
+    <section id="telegram-settings-content">
+        <!-- Back Link -->
+        <div class="mb-4">
+            <a th:href="@{/settings}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Kembali ke Pengaturan
+            </a>
+        </div>
+
+        <!-- Success Message -->
+        <div th:if="${successMessage}" class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span th:text="${successMessage}">Success message</span>
+            </div>
+        </div>
+
+        <div class="max-w-2xl">
+            <!-- Telegram Not Enabled -->
+            <div th:if="${!telegramEnabled}" class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                <div class="flex items-start">
+                    <svg class="w-6 h-6 text-yellow-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div>
+                        <h3 class="text-lg font-medium text-yellow-800">Telegram Bot Tidak Aktif</h3>
+                        <p class="mt-2 text-yellow-700">
+                            Telegram bot belum dikonfigurasi pada server. Hubungi administrator untuk mengaktifkan fitur ini.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Telegram Enabled -->
+            <div th:if="${telegramEnabled}" class="space-y-6">
+                <!-- Already Linked -->
+                <div th:if="${telegramLink != null && telegramLink.isLinked()}" class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">Akun Telegram Terhubung</h2>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Terhubung
+                        </span>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            <svg class="w-10 h-10 text-blue-500 mr-4" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.121l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.538-.194 1.006.128.832.942z"/>
+                            </svg>
+                            <div>
+                                <p class="font-medium text-gray-900" th:text="${telegramLink.telegramFirstName ?: telegramLink.telegramUsername}">Username</p>
+                                <p th:if="${telegramLink.telegramUsername}" class="text-sm text-gray-500" th:text="'@' + ${telegramLink.telegramUsername}">@username</p>
+                            </div>
+                        </div>
+
+                        <div class="text-sm text-gray-600">
+                            <p>Terhubung pada: <span th:text="${#temporals.format(telegramLink.linkedAt, 'dd MMMM yyyy HH:mm')}">date</span></p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <form id="form-unlink-telegram" th:action="@{/settings/telegram/unlink}" method="post">
+                            <button type="submit"
+                                    class="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                                </svg>
+                                Putus Hubungan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Not Linked -->
+                <div th:if="${telegramLink == null || !telegramLink.isLinked()}" class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Hubungkan Akun Telegram</h2>
+
+                    <p class="text-gray-600 mb-6">
+                        Hubungkan akun Telegram Anda untuk mengirim struk dan bukti transfer langsung dari Telegram.
+                        Data akan diekstrak otomatis menggunakan OCR dan tersimpan sebagai draft transaksi.
+                    </p>
+
+                    <!-- Verification Code Display -->
+                    <div th:if="${verificationCode}" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h3 class="text-sm font-medium text-blue-800 mb-2">Kode Verifikasi Anda</h3>
+                        <div class="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-blue-300">
+                            <span class="text-2xl font-mono font-bold text-blue-600 tracking-widest" th:text="${verificationCode}">123456</span>
+                            <button id="btn-copy-code" type="button" class="text-blue-600 hover:text-blue-800">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="mt-3 text-sm text-blue-700">
+                            Kode berlaku selama 15 menit. Kirim ke bot
+                            <a th:href="'https://t.me/' + ${botUsername}" target="_blank" class="font-medium underline" th:text="'@' + ${botUsername}">@bot</a>
+                            dengan perintah:
+                        </p>
+                        <code class="block mt-2 bg-blue-100 px-3 py-2 rounded text-sm text-blue-800">/link <span th:text="${verificationCode}">123456</span></code>
+                    </div>
+
+                    <!-- Steps to Link -->
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <span class="flex-shrink-0 w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">1</span>
+                            <div>
+                                <p class="font-medium text-gray-900">Generate kode verifikasi</p>
+                                <p class="text-sm text-gray-600">Klik tombol di bawah untuk mendapatkan kode 6 digit</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="flex-shrink-0 w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">2</span>
+                            <div>
+                                <p class="font-medium text-gray-900">Buka bot Telegram</p>
+                                <p class="text-sm text-gray-600">
+                                    Klik link:
+                                    <a th:href="'https://t.me/' + ${botUsername}" target="_blank"
+                                       class="text-primary-600 hover:text-primary-800 font-medium" th:text="'@' + ${botUsername}">@bot</a>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <span class="flex-shrink-0 w-8 h-8 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">3</span>
+                            <div>
+                                <p class="font-medium text-gray-900">Kirim kode verifikasi</p>
+                                <p class="text-sm text-gray-600">Ketik <code class="bg-gray-100 px-1 rounded">/link KODE</code> di chat bot</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <form th:action="@{/settings/telegram/generate-code}" method="post">
+                            <button type="submit"
+                                    class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                                </svg>
+                                Generate Kode Verifikasi
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- How it Works -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Cara Kerja</h2>
+                    <div class="space-y-4 text-sm text-gray-600">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <p>Kirim foto struk atau bukti transfer ke bot Telegram</p>
+                        </div>
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <p>Bot akan mengekstrak data transaksi secara otomatis menggunakan OCR</p>
+                        </div>
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <p>Data tersimpan sebagai draft transaksi untuk direview</p>
+                        </div>
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <p>Approve draft untuk membuat transaksi resmi</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <p class="text-sm text-gray-500">
+                            Format struk yang didukung: Bank Jago, CIMB OCTO, GoPay, BYOND/BSI, dan struk umum lainnya.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.getElementById('form-unlink-telegram')?.addEventListener('submit', function(e) {
+                if (!confirm('Yakin ingin memutus hubungan dengan akun Telegram ini?')) e.preventDefault();
+            });
+            /*<![CDATA[*/
+            const verificationCode = /*[[${verificationCode}]]*/ null;
+            /*]]>*/
+            if (verificationCode) {
+                document.getElementById('btn-copy-code')?.addEventListener('click', function() {
+                    navigator.clipboard.writeText(verificationCode);
+                    alert('Kode berhasil disalin!');
+                });
+            }
+        </script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout(${isEdit} ? 'Edit RFQ' : 'Catat RFQ Baru', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head><title>RFQ</title></head>
+<body>
+<h1 id="page-title" th:text="${isEdit} ? 'Edit RFQ' : 'Catat RFQ Baru'">RFQ Baru</h1>
+
+<section class="max-w-4xl">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+        <a th:href="@{/rfq}" class="hover:text-primary-600 transition-colors">RFQ</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+        <span class="text-gray-900" th:text="${isEdit} ? 'Edit' : 'Baru'">Baru</span>
+    </nav>
+
+    <div class="bg-white rounded-lg shadow" x-data="rfqForm">
+        <form th:action="${isEdit} ? @{/rfq/{id}/edit(id=${rfqId})} : @{/rfq}"
+              method="post"
+              enctype="multipart/form-data"
+              class="divide-y divide-gray-200">
+
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <!-- ── SECTION 1: Header ─────────────────────────── -->
+            <div class="p-6 space-y-5">
+                <h2 class="text-base font-semibold text-gray-800">Informasi RFQ</h2>
+                <p class="text-sm text-gray-500 -mt-3">
+                    Catat RFQ (permintaan penawaran) yang masuk dari customer.
+                    Setelah disimpan, kamu bisa langsung membuat Quotation dari halaman detail.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                    <!-- Customer -->
+                    <div x-data="clientPicker"
+                         th:data-initial-id="${form.clientId}"
+                         th:data-initial-label="${clientLabel}">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Customer <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" x-model="label"
+                                   @input.debounce.300ms="search()"
+                                   @focus="focusPicker()"
+                                   @click.away="open = false"
+                                   autocomplete="off"
+                                   placeholder="Ketik nama atau kode customer..."
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                                   required>
+                            <input type="hidden" name="clientId" :value="selectedId">
+                            <div x-show="open && results.length > 0"
+                                 class="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                <template x-for="c in results" :key="c.id">
+                                    <button type="button" @click="select(c)"
+                                            class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                        <span class="font-medium" x-text="c.code"></span>
+                                        <span class="text-gray-400"> — </span>
+                                        <span x-text="c.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Perihal -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Perihal / Subjek</label>
+                        <input type="text" name="subject"
+                               th:value="${form.subject}"
+                               placeholder="Contoh: RFQ Material Panel MCC Proyek Kilang"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+
+                    <!-- Tanggal RFQ Masuk -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Tanggal RFQ Masuk <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="rfqDate"
+                               th:value="${form.rfqDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                               required>
+                    </div>
+
+                    <!-- Deadline Balas -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Deadline Balas Quotation
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="date" name="responseDate" x-ref="responseDate"
+                                   th:value="${form.responseDate}"
+                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <div class="flex gap-1">
+                                <button type="button" @click="setDeadlineDays(3)"
+                                        class="px-2 py-1 text-xs border rounded hover:bg-gray-50">3h</button>
+                                <button type="button" @click="setDeadlineDays(7)"
+                                        class="px-2 py-1 text-xs border rounded hover:bg-gray-50">7h</button>
+                                <button type="button" @click="setDeadlineDays(14)"
+                                        class="px-2 py-1 text-xs border rounded hover:bg-gray-50">14h</button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Kapan customer mengharapkan penawaran harga dikirim</p>
+                    </div>
+
+                    <!-- Proyek -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Proyek (opsional)</label>
+                        <select name="projectId"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">-- Tanpa Proyek --</option>
+                            <option th:each="p : ${projects}"
+                                    th:value="${p.id}"
+                                    th:text="${p.code + ' — ' + p.name}"
+                                    th:selected="${form.projectId != null && form.projectId == p.id}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Upload File RFQ -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Lampiran File RFQ (PDF/Image)
+                        </label>
+                        <input type="file" name="attachmentFile"
+                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                               class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:bg-gray-50 hover:file:bg-gray-100 cursor-pointer">
+                        <p class="text-xs text-gray-400 mt-1">Upload file RFQ dari customer (PDF, gambar, atau Word)</p>
+                    </div>
+
+                </div>
+
+                <!-- Catatan -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                    <textarea name="notes" rows="3"
+                              th:text="${form.notes}"
+                              placeholder="Catatan tambahan tentang RFQ ini..."
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"></textarea>
+                </div>
+            </div>
+
+            <!-- ── SECTION 2: Line Items ──────────────────────── -->
+            <div class="p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-semibold text-gray-800">Daftar Item yang Diminta</h2>
+                        <p class="text-sm text-gray-500 mt-0.5">
+                            Masukkan semua item yang diminta customer. Harga bisa diisi nanti saat membuat Quotation.
+                        </p>
+                    </div>
+                    <button type="button" @click="addLine()"
+                            class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Tambah Item
+                    </button>
+                </div>
+
+                <!-- Header kolom -->
+                <div class="hidden md:grid grid-cols-12 gap-2 px-3 text-xs text-gray-400 uppercase tracking-wide font-medium">
+                    <div class="col-span-1">#</div>
+                    <div class="col-span-4">Produk / Deskripsi</div>
+                    <div class="col-span-2 text-right">Qty</div>
+                    <div class="col-span-2">Satuan</div>
+                    <div class="col-span-2">Catatan</div>
+                    <div class="col-span-1"></div>
+                </div>
+
+                <!-- Rows -->
+                <div class="space-y-2">
+                    <template x-for="(line, index) in lines" :key="line._key">
+                        <div class="border border-gray-200 rounded-lg p-3 grid grid-cols-12 gap-2 items-start bg-gray-50 hover:bg-white transition-colors">
+
+                            <div class="hidden md:flex items-center col-span-1 pt-2">
+                                <span class="text-sm text-gray-400" x-text="index + 1"></span>
+                            </div>
+
+                            <!-- Product picker + Deskripsi -->
+                            <div class="col-span-11 md:col-span-4 space-y-1.5">
+                                <div class="relative">
+                                    <input type="text"
+                                           x-model="line.productLabel"
+                                           @input.debounce.300ms="searchProducts(line)"
+                                           @focus="line.pickerOpen = true"
+                                           @click.away="line.pickerOpen = false"
+                                           autocomplete="off"
+                                           placeholder="Cari produk... (opsional)"
+                                           class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-primary-500 focus:border-primary-500">
+                                    <input type="hidden"
+                                           :name="'lines[' + index + '].productId'"
+                                           :value="line.productId">
+                                    <div x-show="line.pickerOpen && line.productResults.length > 0"
+                                         class="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-auto">
+                                        <template x-for="p in line.productResults" :key="p.id">
+                                            <button type="button" @click="selectProduct(line, p)"
+                                                    class="block w-full text-left px-3 py-2 text-xs hover:bg-primary-50">
+                                                <span class="font-medium" x-text="p.code"></span>
+                                                <span class="text-gray-400"> — </span>
+                                                <span x-text="p.name"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                                <input type="text"
+                                       :name="'lines[' + index + '].description'"
+                                       x-model="line.description"
+                                       placeholder="Deskripsi item *"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-primary-500 focus:border-primary-500"
+                                       required>
+                            </div>
+
+                            <!-- Qty -->
+                            <div class="col-span-5 md:col-span-2">
+                                <label class="md:hidden text-xs text-gray-400">Qty</label>
+                                <input type="number"
+                                       :name="'lines[' + index + '].quantity'"
+                                       x-model="line.quantity"
+                                       step="0.0001" min="0.0001"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-right focus:ring-primary-500 focus:border-primary-500">
+                            </div>
+
+                            <!-- Satuan -->
+                            <div class="col-span-5 md:col-span-2">
+                                <label class="md:hidden text-xs text-gray-400">Satuan</label>
+                                <input type="text"
+                                       :name="'lines[' + index + '].unit'"
+                                       x-model="line.unit"
+                                       placeholder="pcs"
+                                       list="unit-options"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:ring-primary-500 focus:border-primary-500">
+                            </div>
+
+                            <!-- Catatan baris -->
+                            <div class="col-span-11 md:col-span-2">
+                                <label class="md:hidden text-xs text-gray-400">Catatan</label>
+                                <input type="text"
+                                       :name="'lines[' + index + '].notes'"
+                                       x-model="line.notes"
+                                       placeholder="Spesifikasi, merk, dll."
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-xs text-gray-600 focus:ring-primary-500 focus:border-primary-500">
+                            </div>
+
+                            <!-- Hapus -->
+                            <div class="col-span-1 flex justify-end pt-1">
+                                <button type="button" @click="removeLine(index)"
+                                        class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                        title="Hapus">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="lines.length === 0"
+                         class="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                        <p class="text-gray-400 text-sm">Belum ada item. Klik "+ Tambah Item" untuk menambah.</p>
+                        <p class="text-gray-300 text-xs mt-1">Kamu bisa tambah item setelah melihat dokumen RFQ dari customer.</p>
+                    </div>
+                </div>
+
+                <datalist id="unit-options">
+                    <option value="pcs"><option value="unit"><option value="set">
+                    <option value="lot"><option value="meter"><option value="roll">
+                    <option value="drum"><option value="box"><option value="kg"><option value="ls">
+                </datalist>
+            </div>
+
+            <!-- ── SECTION 3: Actions ─────────────────────────── -->
+            <div class="p-6 flex items-center justify-between">
+                <a th:href="@{/rfq}" class="text-sm text-gray-600 hover:text-gray-900">← Batal</a>
+                <button type="submit"
+                        class="px-6 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                    <span th:text="${isEdit} ? 'Update RFQ' : 'Simpan RFQ'">Simpan RFQ</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<script th:inline="javascript" th:attr="nonce=${cspNonce}">
+document.addEventListener('alpine:init', function () {
+    var initialLines = /*[[${initialLines}]]*/ [];
+
+    Alpine.data('rfqForm', function () {
+        return {
+            lines: [],
+            _keyCounter: 0,
+
+            init() {
+                var self = this;
+                if (initialLines && initialLines.length > 0) {
+                    this.lines = initialLines.map(function (l) { return self._makeLine(l); });
+                }
+            },
+
+            _makeLine(data) {
+                data = data || {};
+                return {
+                    _key:           this._keyCounter++,
+                    productId:      data.productId     || '',
+                    productLabel:   data.productLabel  || '',
+                    productResults: [],
+                    pickerOpen:     false,
+                    description:    data.description   || '',
+                    quantity:       data.quantity      || 1,
+                    unit:           data.unit          || 'pcs',
+                    notes:          data.notes         || ''
+                };
+            },
+
+            addLine() { this.lines.push(this._makeLine()); },
+            removeLine(i) { this.lines.splice(i, 1); },
+
+            searchProducts(line) {
+                var q = encodeURIComponent(line.productLabel || '');
+                fetch('/products/search?q=' + q, { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.ok ? r.json() : []; })
+                    .then(function (data) {
+                        line.productResults = data;
+                        line.pickerOpen = data.length > 0;
+                    });
+            },
+
+            selectProduct(line, p) {
+                line.productId    = p.id;
+                line.productLabel = (p.code ? p.code + ' — ' : '') + p.name;
+                if (!line.description) line.description = p.name;
+                if (p.unit) line.unit = p.unit;
+                line.productResults = [];
+                line.pickerOpen     = false;
+            },
+
+            setDeadlineDays(days) {
+                var base = document.querySelector('input[name="rfqDate"]');
+                var d    = base && base.value ? new Date(base.value) : new Date();
+                d.setDate(d.getDate() + days);
+                this.$refs.responseDate.value = d.toISOString().split('T')[0];
+            }
+        };
+    });
+});
+</script>
+</body>
+</html>

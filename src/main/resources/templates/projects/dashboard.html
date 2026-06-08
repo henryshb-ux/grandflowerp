@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Dashboard Proyek', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head><title>Dashboard Proyek</title></head>
+<body>
+<h1 id="page-title">Dashboard Proyek</h1>
+
+<section class="space-y-6" data-testid="project-dashboard">
+
+    <!-- Portfolio Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-5 border-l-4 border-primary-500">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Proyek Aktif</p>
+            <p class="text-4xl font-bold text-primary-600 mt-1"
+               th:text="${summary.activeProjectCount}">0</p>
+            <p class="text-xs text-gray-400 mt-1"
+               th:text="${summary.completedProjectCount} + ' selesai tahun ini'"></p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5 border-l-4 border-indigo-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Total Nilai Kontrak</p>
+            <p class="text-lg font-bold text-indigo-700 mt-1"
+               th:text="${#numbers.formatCurrency(summary.totalContractValue)}">Rp 0</p>
+            <p class="text-xs text-gray-400 mt-1">dari proyek aktif</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5 border-l-4 border-green-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Total Sudah Diinvoice</p>
+            <p class="text-lg font-bold text-green-700 mt-1"
+               th:text="${#numbers.formatCurrency(summary.totalInvoiced)}">Rp 0</p>
+            <p class="text-xs text-gray-400 mt-1"
+               th:text="${#numbers.formatCurrency(summary.outstandingReceivable())} + ' outstanding'"></p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-5 border-l-4 border-orange-400">
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Est. Gross Profit</p>
+            <p class="text-lg font-bold mt-1"
+               th:classappend="${summary.estimatedGrossProfit().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-green-700' : 'text-red-600'}"
+               th:text="${#numbers.formatCurrency(summary.estimatedGrossProfit())}">Rp 0</p>
+            <p class="text-xs text-gray-400 mt-1">Invoice − Biaya PO</p>
+        </div>
+    </div>
+
+    <!-- Project Cards Grid -->
+    <div>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-gray-800">Proyek Berjalan</h2>
+            <div class="flex gap-2">
+                <a th:href="@{/projects}" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                    Semua Proyek
+                </a>
+                <a th:href="@{/projects/new}" class="px-3 py-1.5 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">
+                    + Proyek Baru
+                </a>
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        <div th:if="${projects.empty}"
+             class="bg-white rounded-lg shadow p-10 text-center text-gray-400">
+            <p class="text-lg">Belum ada proyek aktif</p>
+            <a th:href="@{/projects/new}"
+               class="inline-block mt-3 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">
+                Buat Proyek Pertama
+            </a>
+        </div>
+
+        <!-- Project Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div th:each="proj : ${projects}"
+                 class="bg-white rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden">
+
+                <!-- Card Header -->
+                <div class="px-5 py-3 flex items-start justify-between border-b"
+                     th:classappend="${
+                         proj.riskLevel() == 'HIGH'   ? 'bg-red-50 border-red-100'    :
+                         proj.riskLevel() == 'MEDIUM' ? 'bg-yellow-50 border-yellow-100':
+                                                         'bg-green-50 border-green-100'}">
+                    <div>
+                        <p class="font-mono text-xs font-medium text-gray-500"
+                           th:text="${proj.code()}"></p>
+                        <p class="font-semibold text-gray-900 text-sm mt-0.5"
+                           th:text="${proj.name()}"></p>
+                        <p class="text-xs text-gray-500 mt-0.5" th:text="${proj.clientName()}"></p>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                              th:classappend="${
+                                  proj.riskLevel() == 'HIGH'   ? 'bg-red-100 text-red-700'    :
+                                  proj.riskLevel() == 'MEDIUM' ? 'bg-yellow-100 text-yellow-700':
+                                                                   'bg-green-100 text-green-700'}"
+                              th:text="${proj.riskLevel() == 'HIGH' ? '⚠ High Risk' : proj.riskLevel() == 'MEDIUM' ? 'Medium Risk' : '✓ On Track'}">
+                        </span>
+                        <span th:if="${proj.overdue()}"
+                              class="px-2 py-0.5 bg-red-500 text-white rounded-full text-xs font-medium">
+                            TERLAMBAT
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="px-5 py-4 space-y-3">
+
+                    <!-- Progress bar milestone -->
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Progress Milestone</span>
+                            <span th:text="${proj.progressPercent()} + '%'">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="h-2 rounded-full transition-all"
+                                 th:classappend="${proj.progressPercent() >= 80 ? 'bg-green-500' : proj.progressPercent() >= 50 ? 'bg-blue-500' : 'bg-yellow-400'}"
+                                 th:style="'width: ' + ${proj.progressPercent()} + '%'"></div>
+                        </div>
+                    </div>
+
+                    <!-- Financial rows -->
+                    <div class="space-y-1.5 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Nilai Kontrak</span>
+                            <span class="font-medium"
+                                  th:text="${#numbers.formatCurrency(proj.contractValue())}"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Sudah Diinvoice</span>
+                            <span class="font-medium text-green-700"
+                                  th:text="${#numbers.formatCurrency(proj.invoiced())}"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Biaya PO</span>
+                            <span class="font-medium text-orange-600"
+                                  th:text="${#numbers.formatCurrency(proj.poCost())}"></span>
+                        </div>
+                        <div class="flex justify-between pt-1 border-t border-gray-100">
+                            <span class="text-gray-700 font-medium">Gross Profit</span>
+                            <div class="text-right">
+                                <span class="font-bold"
+                                      th:classappend="${proj.grossProfit().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-green-700' : 'text-red-600'}"
+                                      th:text="${#numbers.formatCurrency(proj.grossProfit())}"></span>
+                                <span class="text-xs ml-1"
+                                      th:classappend="${proj.profitMargin().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-green-600' : 'text-red-500'}"
+                                      th:text="'(' + ${proj.profitMargin()} + '%)'"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Deadline -->
+                    <div th:if="${proj.endDate() != null}"
+                         class="text-xs text-gray-400 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span th:classappend="${proj.overdue() ? 'text-red-500 font-medium' : ''}"
+                              th:text="'Deadline: ' + ${#temporals.format(proj.endDate(), 'dd MMM yyyy')}"></span>
+                    </div>
+                </div>
+
+                <!-- Card Footer -->
+                <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex gap-2">
+                    <a th:href="@{/projects/{id}/finance(id=${proj.id()})}"
+                       class="flex-1 text-center px-3 py-1.5 bg-primary-600 text-white rounded text-xs font-medium hover:bg-primary-700 transition-colors">
+                        Laporan Keuangan
+                    </a>
+                    <a th:href="@{/projects/{id}(id=${proj.id()})}"
+                       class="px-3 py-1.5 border border-gray-300 rounded text-xs hover:bg-gray-100 transition-colors">
+                        Detail
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</section>
+</body>
+</html>

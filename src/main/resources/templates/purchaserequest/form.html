@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout(${isEdit} ? 'Edit PR' : 'Buat PR Baru', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head><title>Purchase Request</title></head>
+<body>
+<h1 id="page-title" th:text="${isEdit} ? 'Edit Purchase Request' : 'Buat Purchase Request Baru'">PR</h1>
+
+<section class="max-w-4xl">
+
+    <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+        <a th:href="@{/purchase-requests}" class="hover:text-primary-600">Purchase Request</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+        <span class="text-gray-900" th:text="${isEdit} ? 'Edit' : 'Baru'">Baru</span>
+    </nav>
+
+    <div class="bg-white rounded-lg shadow" x-data="prForm">
+        <form th:action="${isEdit} ? @{/purchase-requests/{id}/edit(id=${prId})} : @{/purchase-requests}"
+              method="post" class="divide-y divide-gray-200">
+
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <!-- ── Header ────────────────────────────────────── -->
+            <div class="p-6 space-y-5">
+                <h2 class="text-base font-semibold text-gray-800">Informasi PR</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                    <!-- Perihal -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Perihal / Subjek</label>
+                        <input type="text" name="subject" th:value="${form.subject}"
+                               placeholder="Contoh: Kebutuhan Material Panel MCC Proyek Kilang"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+
+                    <!-- Tanggal Request -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Tanggal Request <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="requestDate" th:value="${form.requestDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                               required>
+                    </div>
+
+                    <!-- Dibutuhkan -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Dibutuhkan Paling Lambat</label>
+                        <div class="flex gap-2">
+                            <input type="date" name="requiredDate" x-ref="requiredDate"
+                                   th:value="${form.requiredDate}"
+                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <div class="flex gap-1">
+                                <button type="button" @click="setDays(7)"  class="px-2 py-1 text-xs border rounded hover:bg-gray-50">7h</button>
+                                <button type="button" @click="setDays(14)" class="px-2 py-1 text-xs border rounded hover:bg-gray-50">14h</button>
+                                <button type="button" @click="setDays(30)" class="px-2 py-1 text-xs border rounded hover:bg-gray-50">30h</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prioritas -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Prioritas</label>
+                        <select name="priority"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <option th:each="p : ${priorities}"
+                                    th:value="${p.name()}" th:text="${p.label}"
+                                    th:selected="${form.priority != null && form.priority.name() == p.name()}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Pemohon -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Diajukan Oleh</label>
+                        <input type="text" name="requestedBy" th:value="${form.requestedBy}"
+                               placeholder="Nama karyawan yang meminta"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+
+                    <!-- Proyek -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Proyek (opsional)</label>
+                        <select name="projectId"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">-- Tanpa Proyek --</option>
+                            <option th:each="p : ${projects}"
+                                    th:value="${p.id}" th:text="${p.code + ' — ' + p.name}"
+                                    th:selected="${form.projectId != null && form.projectId == p.id}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Catatan -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                        <textarea name="notes" rows="2" th:text="${form.notes}"
+                                  placeholder="Catatan tambahan..."
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Line Items ─────────────────────────────────── -->
+            <div class="p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-semibold text-gray-800">Daftar Barang yang Dibutuhkan</h2>
+                        <p class="text-sm text-gray-500 mt-0.5">Harga estimasi bisa dikosongkan jika belum diketahui.</p>
+                    </div>
+                    <button type="button" @click="addLine()"
+                            class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Tambah Item
+                    </button>
+                </div>
+
+                <!-- Header kolom -->
+                <div class="hidden md:grid grid-cols-12 gap-2 px-3 text-xs text-gray-400 uppercase tracking-wide font-medium">
+                    <div class="col-span-1">#</div>
+                    <div class="col-span-4">Produk / Deskripsi</div>
+                    <div class="col-span-2 text-right">Qty</div>
+                    <div class="col-span-1">Sat</div>
+                    <div class="col-span-3 text-right">Est. Harga</div>
+                    <div class="col-span-1"></div>
+                </div>
+
+                <div class="space-y-2">
+                    <template x-for="(line, index) in lines" :key="line._key">
+                        <div class="border border-gray-200 rounded-lg p-3 grid grid-cols-12 gap-2 items-start bg-gray-50 hover:bg-white transition-colors">
+
+                            <div class="hidden md:flex items-center col-span-1 pt-2">
+                                <span class="text-sm text-gray-400" x-text="index + 1"></span>
+                            </div>
+
+                            <!-- Product + Deskripsi -->
+                            <div class="col-span-11 md:col-span-4 space-y-1.5">
+                                <div class="relative">
+                                    <input type="text" x-model="line.productLabel"
+                                           @input.debounce.300ms="searchProducts(line)"
+                                           @focus="line.pickerOpen = true"
+                                           @click.away="line.pickerOpen = false"
+                                           autocomplete="off"
+                                           placeholder="Cari produk... (opsional)"
+                                           class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm">
+                                    <input type="hidden" :name="'lines[' + index + '].productId'" :value="line.productId">
+                                    <div x-show="line.pickerOpen && line.productResults.length > 0"
+                                         class="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-auto">
+                                        <template x-for="p in line.productResults" :key="p.id">
+                                            <button type="button" @click="selectProduct(line, p)"
+                                                    class="block w-full text-left px-3 py-2 text-xs hover:bg-primary-50">
+                                                <span class="font-medium" x-text="p.code"></span>
+                                                <span class="text-gray-400"> — </span>
+                                                <span x-text="p.name"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                                <input type="text" :name="'lines[' + index + '].description'"
+                                       x-model="line.description"
+                                       placeholder="Deskripsi item *"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                                       required>
+                            </div>
+
+                            <!-- Qty -->
+                            <div class="col-span-5 md:col-span-2">
+                                <label class="md:hidden text-xs text-gray-400">Qty</label>
+                                <input type="number" :name="'lines[' + index + '].quantity'"
+                                       x-model="line.quantity" step="0.0001" min="0.0001"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-right">
+                            </div>
+
+                            <!-- Satuan -->
+                            <div class="col-span-5 md:col-span-1">
+                                <label class="md:hidden text-xs text-gray-400">Sat</label>
+                                <input type="text" :name="'lines[' + index + '].unit'"
+                                       x-model="line.unit" placeholder="pcs"
+                                       list="unit-options"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm">
+                            </div>
+
+                            <!-- Est. Harga -->
+                            <div class="col-span-10 md:col-span-3">
+                                <label class="md:hidden text-xs text-gray-400">Est. Harga</label>
+                                <input type="number" :name="'lines[' + index + '].estimatedPrice'"
+                                       x-model="line.estimatedPrice" step="1000" min="0"
+                                       placeholder="0"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-right font-mono">
+                                <p class="text-xs text-gray-400 text-right mt-0.5"
+                                   x-show="line.estimatedPrice > 0"
+                                   x-text="'Rp ' + Math.round(line.estimatedPrice).toLocaleString('id-ID')"></p>
+                            </div>
+
+                            <!-- Hapus -->
+                            <div class="col-span-1 flex justify-end pt-1">
+                                <button type="button" @click="removeLine(index)"
+                                        class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="lines.length === 0"
+                         class="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                        <p class="text-gray-400 text-sm">Belum ada item. Klik "+ Tambah Item".</p>
+                    </div>
+                </div>
+
+                <!-- Estimasi Total -->
+                <div x-show="lines.length > 0" class="flex justify-end">
+                    <div class="text-sm text-gray-600">
+                        Estimasi Total:
+                        <span class="font-bold text-gray-900 ml-1"
+                              x-text="'Rp ' + lines.reduce((s,l) => s + (parseFloat(l.estimatedPrice)||0) * (parseFloat(l.quantity)||0), 0).toLocaleString('id-ID')"></span>
+                    </div>
+                </div>
+
+                <datalist id="unit-options">
+                    <option value="pcs"><option value="unit"><option value="set">
+                    <option value="lot"><option value="meter"><option value="roll">
+                    <option value="drum"><option value="box"><option value="kg"><option value="ls">
+                </datalist>
+            </div>
+
+            <!-- ── Actions ────────────────────────────────────── -->
+            <div class="p-6 flex items-center justify-between">
+                <a th:href="@{/purchase-requests}" class="text-sm text-gray-600 hover:text-gray-900">← Batal</a>
+                <div class="flex gap-3">
+                    <button type="submit" name="_action" value="draft"
+                            class="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                        Simpan Draft
+                    </button>
+                    <button type="submit" name="_action" value="submit"
+                            class="px-6 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors">
+                        Simpan & Ajukan
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</section>
+
+<script th:inline="javascript" th:attr="nonce=${cspNonce}">
+document.addEventListener('alpine:init', function () {
+    var initialLines = /*[[${initialLines}]]*/ [];
+
+    Alpine.data('prForm', function () {
+        return {
+            lines: [],
+            _keyCounter: 0,
+
+            init() {
+                var self = this;
+                if (initialLines && initialLines.length > 0) {
+                    this.lines = initialLines.map(function (l) { return self._makeLine(l); });
+                }
+            },
+
+            _makeLine(data) {
+                data = data || {};
+                return {
+                    _key:           this._keyCounter++,
+                    productId:      data.productId      || '',
+                    productLabel:   data.productLabel   || '',
+                    productResults: [],
+                    pickerOpen:     false,
+                    description:    data.description    || '',
+                    quantity:       data.quantity       || 1,
+                    unit:           data.unit           || 'pcs',
+                    estimatedPrice: data.estimatedPrice || 0
+                };
+            },
+
+            addLine()      { this.lines.push(this._makeLine()); },
+            removeLine(i)  { this.lines.splice(i, 1); },
+
+            searchProducts(line) {
+                var q = encodeURIComponent(line.productLabel || '');
+                fetch('/products/search?q=' + q, { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.ok ? r.json() : []; })
+                    .then(function (data) {
+                        line.productResults = data;
+                        line.pickerOpen = data.length > 0;
+                    });
+            },
+
+            selectProduct(line, p) {
+                line.productId    = p.id;
+                line.productLabel = (p.code ? p.code + ' — ' : '') + p.name;
+                if (!line.description) line.description = p.name;
+                if (p.unit) line.unit = p.unit;
+                if ((!line.estimatedPrice || line.estimatedPrice === 0) && p.purchasePrice) {
+                    line.estimatedPrice = p.purchasePrice;
+                }
+                line.productResults = [];
+                line.pickerOpen     = false;
+            },
+
+            setDays(days) {
+                var base = document.querySelector('input[name="requestDate"]');
+                var d    = base && base.value ? new Date(base.value) : new Date();
+                d.setDate(d.getDate() + days);
+                this.$refs.requiredDate.value = d.toISOString().split('T')[0];
+            }
+        };
+    });
+});
+</script>
+</body>
+</html>

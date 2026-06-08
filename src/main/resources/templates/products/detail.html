@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/main :: layout('Detail Produk - ' + ${product.code}, ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head>
+    <title th:text="'Detail Produk - ' + ${product.code}">Detail Produk</title>
+</head>
+<body>
+    <h1 id="page-title">Detail Produk</h1>
+
+    <section class="max-w-4xl space-y-6">
+        <!-- Header with actions -->
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900" th:text="${product.name}">Nama Produk</h2>
+                <p class="text-gray-500" th:text="${product.code}">PRD001</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span th:if="${product.active}" class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">Aktif</span>
+                <span th:unless="${product.active}" class="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800">Nonaktif</span>
+                <a sec:authorize="hasAuthority('PRODUCT_EDIT')" th:href="@{/products/{id}/edit(id=${product.id})}"
+                   class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    Edit
+                </a>
+            </div>
+        </div>
+
+        <!-- Basic Information -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Informasi Dasar</h3>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Kode Produk</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.code}">PRD001</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Nama Produk</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.name}">Produk</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Satuan</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.unit}">pcs</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Kategori</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.category?.name ?: '-'}">-</dd>
+                </div>
+                <div class="md:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">Deskripsi</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.description ?: '-'}">-</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Inventory Settings -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Pengaturan Inventori</h3>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Lacak Inventori</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        <span th:if="${product.trackInventory}" class="text-green-600">Ya</span>
+                        <span th:unless="${product.trackInventory}" class="text-gray-500">Tidak</span>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Metode Perhitungan Biaya</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.costingMethod.displayName}">Weighted Average</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Stok Minimum</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.minimumStock != null ? #numbers.formatDecimal(product.minimumStock, 0, 'COMMA', 4, 'POINT') : '-'}">-</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Harga Jual</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.sellingPrice != null ? 'Rp ' + #numbers.formatDecimal(product.sellingPrice, 0, 'COMMA', 0, 'POINT') : '-'}">-</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Account Mapping -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Pemetaan Akun</h3>
+            <dl class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Akun Inventori</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.inventoryAccount != null ? product.inventoryAccount.accountCode + ' - ' + product.inventoryAccount.accountName : '-'}">-</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Akun HPP</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.cogsAccount != null ? product.cogsAccount.accountCode + ' - ' + product.cogsAccount.accountName : '-'}">-</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Akun Penjualan</dt>
+                    <dd class="mt-1 text-sm text-gray-900" th:text="${product.salesAccount != null ? product.salesAccount.accountCode + ' - ' + product.salesAccount.accountName : '-'}">-</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between pt-4">
+            <a th:href="@{/products}" class="text-gray-600 hover:text-gray-900">
+                &larr; Kembali ke Daftar Produk
+            </a>
+            <div class="flex items-center gap-3" sec:authorize="hasAuthority('PRODUCT_EDIT')">
+                <form th:if="${product.active}" id="form-deactivate" th:action="@{/products/{id}/deactivate(id=${product.id})}" method="post" class="inline">
+                    <button type="submit"
+                            class="px-4 py-2 text-yellow-600 border border-yellow-300 rounded-lg hover:bg-yellow-50">
+                        Nonaktifkan
+                    </button>
+                </form>
+                <form th:unless="${product.active}" th:action="@{/products/{id}/activate(id=${product.id})}" method="post" class="inline">
+                    <button type="submit"
+                            class="px-4 py-2 text-green-600 border border-green-300 rounded-lg hover:bg-green-50">
+                        Aktifkan
+                    </button>
+                </form>
+                <form sec:authorize="hasAuthority('PRODUCT_DELETE')" id="form-delete" th:action="@{/products/{id}/delete(id=${product.id})}" method="post" class="inline">
+                    <button type="submit"
+                            class="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50">
+                        Hapus
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+        <script th:inline="javascript" th:attr="nonce=${cspNonce}">
+            document.getElementById('form-deactivate')?.addEventListener('submit', function(e) {
+                if (!confirm('Nonaktifkan produk ini?')) e.preventDefault();
+            });
+            document.getElementById('form-delete')?.addEventListener('submit', function(e) {
+                if (!confirm('Hapus produk ini? Tindakan ini tidak dapat dibatalkan.')) e.preventDefault();
+            });
+        </script>
+</body>
+</html>

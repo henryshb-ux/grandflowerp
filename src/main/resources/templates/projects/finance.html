@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Laporan Keuangan Proyek', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head><title>Laporan Keuangan Proyek</title></head>
+<body>
+<h1 id="page-title"
+    th:text="${report.project().code()} + ' — ' + ${report.project().name()}">
+    Laporan Keuangan Proyek
+</h1>
+
+<section class="space-y-6 max-w-6xl">
+
+    <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-sm text-gray-500">
+        <a th:href="@{/projects/dashboard}" class="hover:text-primary-600">Dashboard Proyek</a>
+        <span>/</span>
+        <a th:href="@{/projects/{id}(id=${report.project().id()})}"
+           class="hover:text-primary-600" th:text="${report.project().code()}">Proyek</a>
+        <span>/</span>
+        <span class="text-gray-900">Laporan Keuangan</span>
+    </nav>
+
+    <!-- Action Bar -->
+    <div class="flex items-center gap-3">
+        <a th:href="@{/projects/{id}(id=${report.project().id()})}"
+           class="text-sm text-gray-500 hover:text-gray-700">← Detail Proyek</a>
+        <div class="ml-auto flex gap-2">
+            <a th:href="@{/projects/{id}/profitability(id=${report.project().id()})}"
+               class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                Laporan Profitabilitas (Jurnal)
+            </a>
+            <a th:href="@{/projects/{id}/finance(id=${report.project().id()})}"
+               class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+                🔄 Refresh
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- Nilai Kontrak -->
+        <div class="bg-white rounded-lg shadow p-5">
+            <p class="text-xs text-gray-400 uppercase tracking-wide">Nilai Kontrak</p>
+            <p class="text-xl font-bold text-gray-900 mt-1"
+               th:text="${#numbers.formatCurrency(report.contractValue())}">Rp 0</p>
+        </div>
+        <!-- Invoice Progress -->
+        <div class="bg-white rounded-lg shadow p-5">
+            <p class="text-xs text-gray-400 uppercase tracking-wide">Progress Invoice</p>
+            <p class="text-xl font-bold text-green-700 mt-1"
+               th:text="${#numbers.formatCurrency(report.totalInvoiced())}">Rp 0</p>
+            <div class="mt-2">
+                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                    <div class="bg-green-500 h-1.5 rounded-full"
+                         th:style="'width: ' + ${report.invoiceProgress()} + '%'"></div>
+                </div>
+                <p class="text-xs text-gray-400 mt-0.5"
+                   th:text="${report.invoiceProgress()} + '% dari kontrak'"></p>
+            </div>
+        </div>
+        <!-- Gross Profit -->
+        <div class="bg-white rounded-lg shadow p-5">
+            <p class="text-xs text-gray-400 uppercase tracking-wide">Gross Profit</p>
+            <p class="text-xl font-bold mt-1"
+               th:classappend="${report.grossProfit().compareTo(T(java.math.BigDecimal).ZERO) >= 0 ? 'text-green-700' : 'text-red-600'}"
+               th:text="${#numbers.formatCurrency(report.grossProfit())}">Rp 0</p>
+            <p class="text-xs text-gray-400 mt-0.5"
+               th:text="'Margin: ' + ${report.profitMargin()} + '%'"></p>
+        </div>
+        <!-- Budget Status -->
+        <div class="bg-white rounded-lg shadow p-5"
+             th:classappend="${report.isOverBudget() ? 'border-2 border-red-300' : ''}">
+            <p class="text-xs text-gray-400 uppercase tracking-wide">Budget vs Aktual</p>
+            <p class="text-xl font-bold mt-1"
+               th:classappend="${report.isOverBudget() ? 'text-red-600' : 'text-gray-900'}"
+               th:text="${#numbers.formatCurrency(report.totalPoCost())}">Rp 0</p>
+            <p class="text-xs mt-0.5"
+               th:classappend="${report.isOverBudget() ? 'text-red-500 font-medium' : 'text-gray-400'}"
+               th:text="${report.isOverBudget() ? '⚠ Over budget!' : 'Budget: ' + #numbers.formatCurrency(report.budget())}"></p>
+            <div class="mt-1">
+                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                    <div class="h-1.5 rounded-full"
+                         th:classappend="${report.isOverBudget() ? 'bg-red-500' : 'bg-blue-500'}"
+                         th:style="'width: ' + ${report.budgetUsedPct().min(T(java.math.BigDecimal).valueOf(100))} + '%'"></div>
+                </div>
+                <p class="text-xs text-gray-400 mt-0.5"
+                   th:text="${report.budgetUsedPct()} + '% terpakai'"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receivable & Payable -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Piutang -->
+        <div class="bg-white rounded-lg shadow p-5">
+            <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <span class="w-3 h-3 bg-green-500 rounded-full inline-block"></span>
+                Piutang Customer
+            </h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Total Diinvoice</span>
+                    <span class="font-medium"
+                          th:text="${#numbers.formatCurrency(report.totalInvoiced())}"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Sudah Diterima</span>
+                    <span class="font-medium text-green-600"
+                          th:text="${#numbers.formatCurrency(report.totalCollected())}"></span>
+                </div>
+                <div class="flex justify-between pt-2 border-t border-gray-100">
+                    <span class="font-medium text-gray-700">Outstanding Piutang</span>
+                    <span class="font-bold text-orange-600"
+                          th:text="${#numbers.formatCurrency(report.outstandingReceivable())}"></span>
+                </div>
+            </div>
+        </div>
+        <!-- Hutang -->
+        <div class="bg-white rounded-lg shadow p-5">
+            <h3 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <span class="w-3 h-3 bg-orange-500 rounded-full inline-block"></span>
+                Hutang Supplier
+            </h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Total Nilai PO</span>
+                    <span class="font-medium"
+                          th:text="${#numbers.formatCurrency(report.totalPoCost())}"></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-500">Sudah Dibayar</span>
+                    <span class="font-medium text-green-600"
+                          th:text="${#numbers.formatCurrency(report.totalPoPaid())}"></span>
+                </div>
+                <div class="flex justify-between pt-2 border-t border-gray-100">
+                    <span class="font-medium text-gray-700">Outstanding Hutang</span>
+                    <span class="font-bold text-red-600"
+                          th:text="${#numbers.formatCurrency(report.outstandingPayable())}"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Milestones -->
+    <div th:if="${!report.milestones().empty()}"
+         class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="font-semibold text-gray-800">Progress Milestone</h2>
+        </div>
+        <div class="p-6">
+            <div class="space-y-3">
+                <div th:each="m : ${report.milestones()}"
+                     class="flex items-center gap-4">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
+                         th:classappend="${m.status == 'COMPLETED' ? 'bg-green-100 text-green-700' : m.status == 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}">
+                        <span th:if="${m.status == 'COMPLETED'}">✓</span>
+                        <span th:if="${m.status != 'COMPLETED'}"
+                              th:text="${m.weight_percent} + '%'"></span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium" th:text="${m.name}"></p>
+                        <p class="text-xs text-gray-400"
+                           th:if="${m.target_date != null}"
+                           th:text="'Target: ' + ${m.target_date}"></p>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+                          th:classappend="${m.status == 'COMPLETED' ? 'bg-green-100 text-green-700' : m.status == 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}"
+                          th:text="${m.status}"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Orders terkait -->
+    <div th:if="${!report.salesOrders().empty()}"
+         class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 class="font-semibold text-gray-800">Sales Orders</h2>
+            <a th:href="@{/sales-orders(search=${report.project().code()})}"
+               class="text-xs text-primary-600 hover:underline">Lihat Semua →</a>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">No. SO</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Customer</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Tanggal</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Nilai</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">Status</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="so : ${report.salesOrders()}" class="hover:bg-gray-50">
+                <td class="px-4 py-3 font-mono text-primary-600"
+                    th:text="${so.so_number}"></td>
+                <td class="px-4 py-3" th:text="${so.client_name}"></td>
+                <td class="px-4 py-3 text-gray-500" th:text="${so.so_date}"></td>
+                <td class="px-4 py-3 text-right font-medium"
+                    th:text="${#numbers.formatCurrency(so.total_amount)}"></td>
+                <td class="px-4 py-3 text-center">
+                    <span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs"
+                          th:text="${so.status}"></span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Purchase Orders terkait -->
+    <div th:if="${!report.purchaseOrders().empty()}"
+         class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 class="font-semibold text-gray-800">Purchase Orders</h2>
+            <a th:href="@{/purchase-orders(search=${report.project().code()})}"
+               class="text-xs text-primary-600 hover:underline">Lihat Semua →</a>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">No. PO</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Supplier</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Tanggal</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Nilai</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">Status</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="po : ${report.purchaseOrders()}" class="hover:bg-gray-50">
+                <td class="px-4 py-3 font-mono text-primary-600"
+                    th:text="${po.po_number}"></td>
+                <td class="px-4 py-3" th:text="${po.vendor_name}"></td>
+                <td class="px-4 py-3 text-gray-500" th:text="${po.po_date}"></td>
+                <td class="px-4 py-3 text-right font-medium"
+                    th:text="${#numbers.formatCurrency(po.total_amount)}"></td>
+                <td class="px-4 py-3 text-center">
+                    <span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs"
+                          th:text="${po.status}"></span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Invoice List -->
+    <div th:if="${!report.invoices().empty()}"
+         class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="font-semibold text-gray-800">Invoice</h2>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">No. Invoice</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Tgl Invoice</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Jatuh Tempo</th>
+                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500">Nilai</th>
+                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500">Status</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+            <tr th:each="inv : ${report.invoices()}" class="hover:bg-gray-50">
+                <td class="px-4 py-3 font-mono text-primary-600"
+                    th:text="${inv.invoice_number}"></td>
+                <td class="px-4 py-3 text-gray-600" th:text="${inv.invoice_date}"></td>
+                <td class="px-4 py-3 text-gray-600" th:text="${inv.due_date}"></td>
+                <td class="px-4 py-3 text-right font-medium"
+                    th:text="${#numbers.formatCurrency(inv.total_amount)}"></td>
+                <td class="px-4 py-3 text-center">
+                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs"
+                          th:text="${inv.status}"></span>
+                </td>
+            </tr>
+            </tbody>
+            <tfoot class="bg-gray-50">
+            <tr>
+                <td colspan="3" class="px-4 py-3 text-right font-semibold text-gray-700">
+                    Total Invoice
+                </td>
+                <td class="px-4 py-3 text-right font-bold text-lg"
+                    th:text="${#numbers.formatCurrency(report.totalInvoiced())}"></td>
+                <td></td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+
+</section>
+</body>
+</html>

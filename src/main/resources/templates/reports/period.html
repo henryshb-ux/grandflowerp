@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout('Laporan Periode', ~{::#page-title}, ~{::section}, ~{})}"
+      lang="id">
+<head>
+    <title>Laporan Periode</title>
+</head>
+<body>
+    <h1 id="page-title">Laporan Periode</h1>
+
+    <section id="period-report-content" class="h-full flex flex-col overflow-y-auto">
+        <div class="max-w-4xl">
+            <!-- Breadcrumb -->
+            <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+                <a th:href="@{/reports}" class="hover:text-primary-600 transition-colors">Laporan</a>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <span class="text-gray-900">Laporan Periode</span>
+            </nav>
+
+            <!-- No fiscal periods warning -->
+            <div th:if="${periodYears.isEmpty()}" id="no-periods" class="bg-yellow-50 rounded-lg border border-yellow-200 p-6 text-center">
+                <svg class="w-12 h-12 text-yellow-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                <p class="text-yellow-800 font-medium">Belum ada periode fiskal</p>
+                <p class="text-yellow-600 text-sm mt-1">Buat periode fiskal terlebih dahulu di menu
+                    <a th:href="@{/fiscal-periods}" class="underline hover:text-yellow-800">Master Data &rarr; Periode Fiskal</a>
+                </p>
+            </div>
+
+            <!-- Period Selector -->
+            <div th:if="${!periodYears.isEmpty()}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <form th:action="@{/reports/period}" method="get">
+                    <div th:replace="~{reports/fragments/period-selector :: period-selector('range')}"></div>
+                </form>
+            </div>
+
+            <!-- Reports (shown when period is selected) -->
+            <th:block th:if="${incomeStatement != null}">
+
+                <!-- Income Statement -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h2 class="text-lg font-bold text-gray-900">LAPORAN LABA RUGI</h2>
+                        <p class="text-sm text-gray-600">Income Statement</p>
+                        <p class="text-sm text-gray-500 mt-1"
+                           th:text="'Periode: ' + ${#temporals.format(startDate, 'd MMMM yyyy')} + ' - ' + ${#temporals.format(endDate, 'd MMMM yyyy')}">
+                            Periode
+                        </p>
+                    </div>
+                    <div class="p-6">
+                        <!-- Revenue -->
+                        <div class="mb-6">
+                            <h3 class="text-sm font-bold text-green-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-green-200">Pendapatan</h3>
+                            <div class="space-y-2">
+                                <th:block th:if="${!incomeStatement.revenueItems.isEmpty()}">
+                                    <div th:each="item : ${incomeStatement.revenueItems}" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded">
+                                        <span class="text-sm text-gray-700" th:text="${item.account.accountName}">Account</span>
+                                        <span class="text-sm font-mono" th:text="${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                    </div>
+                                </th:block>
+                                <div th:if="${incomeStatement.revenueItems.isEmpty()}" class="text-sm text-gray-500 py-2">Tidak ada pendapatan</div>
+                            </div>
+                            <div class="flex justify-between items-center py-3 mt-2 border-t border-gray-200 bg-green-50 px-3 rounded">
+                                <span class="text-sm font-semibold text-green-800">Total Pendapatan</span>
+                                <span class="text-sm font-mono font-semibold text-green-800" th:text="${#numbers.formatDecimal(incomeStatement.totalRevenue, 1, 'POINT', 0, 'COMMA')}">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Expenses -->
+                        <div class="mb-6">
+                            <h3 class="text-sm font-bold text-red-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-red-200">Beban Operasional</h3>
+                            <div class="space-y-2">
+                                <th:block th:if="${!incomeStatement.expenseItems.isEmpty()}">
+                                    <div th:each="item : ${incomeStatement.expenseItems}" class="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded">
+                                        <span class="text-sm text-gray-700" th:text="${item.account.accountName}">Account</span>
+                                        <span class="text-sm font-mono" th:text="'(' + ${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                                    </div>
+                                </th:block>
+                                <div th:if="${incomeStatement.expenseItems.isEmpty()}" class="text-sm text-gray-500 py-2">Tidak ada beban</div>
+                            </div>
+                            <div class="flex justify-between items-center py-3 mt-2 border-t border-gray-200 bg-red-50 px-3 rounded">
+                                <span class="text-sm font-semibold text-red-800">Total Beban Operasional</span>
+                                <span class="text-sm font-mono font-semibold text-red-800" th:text="'(' + ${#numbers.formatDecimal(incomeStatement.totalExpense, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Net Income -->
+                        <div class="flex justify-between items-center py-4 px-4 rounded-lg border-2"
+                             th:classappend="${incomeStatement.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'bg-accent-100 border-accent-300' : 'bg-red-100 border-red-300'">
+                            <span class="text-base font-bold"
+                                  th:classappend="${incomeStatement.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-900' : 'text-red-900'"
+                                  th:text="${incomeStatement.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'LABA BERSIH' : 'RUGI BERSIH'">LABA BERSIH</span>
+                            <span class="text-xl font-mono font-bold"
+                                  th:classappend="${incomeStatement.netIncome.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'text-accent-900' : 'text-red-900'"
+                                  th:text="${#numbers.formatDecimal(incomeStatement.netIncome, 1, 'POINT', 0, 'COMMA')}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Balance Sheet -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h2 class="text-lg font-bold text-gray-900">LAPORAN POSISI KEUANGAN</h2>
+                        <p class="text-sm text-gray-600">Balance Sheet / Neraca</p>
+                        <p class="text-sm text-gray-500 mt-1" th:text="'Per ' + ${#temporals.format(endDate, 'd MMMM yyyy')}">Per 31 Desember 2025</p>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Assets -->
+                            <div>
+                                <h3 class="text-sm font-bold text-blue-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-blue-200">Aset</h3>
+                                <div class="space-y-2">
+                                    <div th:each="item : ${balanceSheet.assetItems}" class="flex justify-between items-center py-1.5 px-2 hover:bg-gray-50 rounded">
+                                        <span class="text-sm text-gray-700" th:text="${item.account.accountName}">Account</span>
+                                        <span class="text-sm font-mono" th:text="${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center py-3 mt-2 border-t-2 border-blue-200 bg-blue-50 px-3 rounded">
+                                    <span class="text-sm font-bold text-blue-800">Total Aset</span>
+                                    <span class="text-sm font-mono font-bold text-blue-800" th:text="${#numbers.formatDecimal(balanceSheet.totalAssets, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                </div>
+                            </div>
+
+                            <!-- Liabilities + Equity -->
+                            <div>
+                                <h3 class="text-sm font-bold text-purple-800 uppercase tracking-wider mb-3 pb-2 border-b-2 border-purple-200">Kewajiban &amp; Ekuitas</h3>
+                                <div class="space-y-2">
+                                    <div th:each="item : ${balanceSheet.liabilityItems}" class="flex justify-between items-center py-1.5 px-2 hover:bg-gray-50 rounded">
+                                        <span class="text-sm text-gray-700" th:text="${item.account.accountName}">Account</span>
+                                        <span class="text-sm font-mono" th:text="${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                    </div>
+                                    <div th:each="item : ${balanceSheet.equityItems}" class="flex justify-between items-center py-1.5 px-2 hover:bg-gray-50 rounded">
+                                        <span class="text-sm text-gray-700" th:text="${item.account.accountName}">Account</span>
+                                        <span class="text-sm font-mono" th:text="${#numbers.formatDecimal(item.balance, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                    </div>
+                                    <!-- Current Year Earnings -->
+                                    <div class="flex justify-between items-center py-1.5 px-2 hover:bg-gray-50 rounded">
+                                        <span class="text-sm text-gray-700 italic">Laba Tahun Berjalan</span>
+                                        <span class="text-sm font-mono" th:text="${#numbers.formatDecimal(balanceSheet.currentYearEarnings, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center py-3 mt-2 border-t-2 border-purple-200 bg-purple-50 px-3 rounded">
+                                    <span class="text-sm font-bold text-purple-800">Total Kewajiban &amp; Ekuitas</span>
+                                    <span class="text-sm font-mono font-bold text-purple-800" th:text="${#numbers.formatDecimal(balanceSheet.totalLiabilities + balanceSheet.totalEquity, 1, 'POINT', 0, 'COMMA')}">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </th:block>
+
+            <!-- Empty state -->
+            <div th:if="${incomeStatement == null}" class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-gray-500">Pilih periode untuk menampilkan laporan keuangan</p>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

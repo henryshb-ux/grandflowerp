@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Purchase Order ' + ${po.poNumber}">Purchase Order</title>
+    <style th:attr="nonce=${cspNonce}">
+        @page { size: A4; margin: 15mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 10pt; line-height: 1.5; color: #1f2937; background: white; }
+        .container { max-width: 210mm; margin: 0 auto; padding: 6mm; }
+
+        .header { display: flex; justify-content: space-between; align-items: flex-start;
+                  margin-bottom: 6mm; padding-bottom: 4mm; border-bottom: 2px solid #4f46e5; }
+        .company-logo { max-height: 55px; max-width: 180px; margin-bottom: 2mm; }
+        .company-name { font-size: 14pt; font-weight: 700; color: #1f2937; }
+        .company-details { font-size: 8pt; color: #4b5563; line-height: 1.6; }
+        .doc-title { font-size: 22pt; font-weight: 700; color: #4f46e5; letter-spacing: 1px; text-align: right; }
+        .doc-number { font-size: 11pt; font-family: monospace; color: #374151; text-align: right; margin-top: 2mm; }
+        .doc-status { display: inline-block; padding: 1mm 3mm; background: #e0e7ff;
+                      color: #3730a3; border-radius: 3px; font-size: 8pt; font-weight: 600;
+                      text-align: right; margin-top: 2mm; }
+
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-bottom: 5mm; }
+        .info-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 4px; padding: 3mm; }
+        .info-box-title { font-size: 8pt; font-weight: 600; color: #6b7280; text-transform: uppercase;
+                          letter-spacing: 0.5px; margin-bottom: 1.5mm; }
+        .info-box-content { font-size: 9pt; color: #1f2937; line-height: 1.6; }
+        .info-box-content strong { font-weight: 700; font-size: 10pt; }
+
+        table.items { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+        table.items th { background: #eef2ff; color: #3730a3; font-size: 8pt; font-weight: 700;
+                         text-transform: uppercase; padding: 2.5mm 3mm;
+                         border: 1px solid #c7d2fe; text-align: left; }
+        table.items td { padding: 2.5mm 3mm; border: 1px solid #e5e7eb; font-size: 9pt; vertical-align: top; }
+        table.items tr:nth-child(even) td { background: #f9fafb; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .font-mono { font-family: monospace; }
+        .font-bold { font-weight: 700; }
+
+        .totals { display: flex; justify-content: flex-end; margin-bottom: 5mm; }
+        .totals-box { width: 70mm; }
+        .totals-row { display: flex; justify-content: space-between; padding: 1mm 0;
+                      font-size: 9.5pt; border-bottom: 1px solid #f3f4f6; }
+        .totals-row.grand { border-top: 2px solid #374151; border-bottom: none;
+                            font-weight: 700; font-size: 11pt; padding-top: 2mm; }
+
+        .notes-box { margin-bottom: 5mm; padding: 3mm; background: #fffbeb;
+                     border: 1px solid #fde68a; border-radius: 4px; font-size: 8.5pt; }
+        .terms-box  { margin-bottom: 5mm; padding: 3mm; background: #f0fdf4;
+                     border: 1px solid #bbf7d0; border-radius: 4px; font-size: 8.5pt; }
+
+        .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; margin-top: 6mm; }
+        .signature-box { text-align: center; }
+        .signature-title { font-size: 8.5pt; font-weight: 600; text-transform: uppercase;
+                           letter-spacing: 0.5px; margin-bottom: 1mm; }
+        .signature-line { border-bottom: 1px solid #9ca3af; margin: 14mm 4mm 2mm; }
+        .signature-label { font-size: 8pt; color: #6b7280; }
+
+        .footer { margin-top: 5mm; padding-top: 3mm; border-top: 1px solid #e5e7eb;
+                  display: flex; justify-content: space-between; font-size: 7.5pt; color: #9ca3af; }
+
+        .print-controls { position: fixed; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 1000; }
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;
+               cursor: pointer; border: none; text-decoration: none; }
+        .btn-print { background: #4f46e5; color: white; }
+        .btn-back  { background: #f3f4f6; color: #374151; }
+        @media print {
+            .print-controls { display: none; }
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="print-controls">
+    <a th:href="${backUrl}" class="btn btn-back">← Kembali</a>
+    <button onclick="window.print()" class="btn btn-print">🖨 Cetak PO</button>
+</div>
+
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                 th:src="@{${company.companyLogoPath}}" alt="Logo" class="company-logo">
+            <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                 th:src="@{${theme.logoPath}}" alt="Logo" class="company-logo">
+            <div class="company-name" th:text="${company.companyName}">PT Grandindo</div>
+            <div class="company-details">
+                <span th:text="${company.companyAddress}"></span><br>
+                Tel: <span th:text="${company.companyPhone}"></span>
+                <span th:if="${company.companyEmail}"> | <span th:text="${company.companyEmail}"></span></span><br>
+                NPWP: <span th:text="${company.taxId}"></span>
+            </div>
+        </div>
+        <div>
+            <div class="doc-title">PURCHASE ORDER</div>
+            <div class="doc-number" th:text="${po.poNumber}">PO-2026-001</div>
+            <div class="doc-status" th:text="${po.status.label}">Draft</div>
+        </div>
+    </div>
+
+    <!-- Info Grid -->
+    <div class="info-grid">
+        <!-- Kepada Supplier -->
+        <div class="info-box">
+            <div class="info-box-title">Kepada Supplier</div>
+            <div class="info-box-content">
+                <strong th:text="${po.vendor?.name}">Nama Supplier</strong><br>
+                <span th:if="${po.vendor?.address}" th:text="${po.vendor?.address}"></span><br>
+                <span th:if="${po.vendor?.phone}">Tel: <span th:text="${po.vendor?.phone}"></span></span>
+                <span th:if="${po.vendor?.email}"> | <span th:text="${po.vendor?.email}"></span></span><br>
+                <span th:if="${po.vendor?.taxId}">NPWP: <span th:text="${po.vendor?.taxId}"></span></span>
+            </div>
+        </div>
+        <!-- Detail PO -->
+        <div class="info-box">
+            <div class="info-box-title">Detail Order</div>
+            <div class="info-box-content">
+                <table style="border:none;margin:0;width:100%">
+                    <tr>
+                        <td style="border:none;padding:0.5mm 3mm 0.5mm 0;color:#6b7280;font-size:8pt;width:45%">Tgl PO</td>
+                        <td style="border:none;padding:0.5mm 0;font-weight:600"
+                            th:text="${#temporals.format(po.poDate, 'dd MMMM yyyy')}"></td>
+                    </tr>
+                    <tr th:if="${po.expectedDelivery != null}">
+                        <td style="border:none;padding:0.5mm 3mm 0.5mm 0;color:#6b7280;font-size:8pt">Est. Tiba</td>
+                        <td style="border:none;padding:0.5mm 0"
+                            th:text="${#temporals.format(po.expectedDelivery, 'dd MMMM yyyy')}"></td>
+                    </tr>
+                    <tr th:if="${po.paymentTerms != null}">
+                        <td style="border:none;padding:0.5mm 3mm 0.5mm 0;color:#6b7280;font-size:8pt">Terms</td>
+                        <td style="border:none;padding:0.5mm 0;font-weight:600" th:text="${po.paymentTerms}"></td>
+                    </tr>
+                    <tr th:if="${po.purchaseRequest != null}">
+                        <td style="border:none;padding:0.5mm 3mm 0.5mm 0;color:#6b7280;font-size:8pt">Ref PR</td>
+                        <td style="border:none;padding:0.5mm 0;font-family:monospace"
+                            th:text="${po.purchaseRequest.prNumber}"></td>
+                    </tr>
+                    <tr th:if="${po.project != null}">
+                        <td style="border:none;padding:0.5mm 3mm 0.5mm 0;color:#6b7280;font-size:8pt">Proyek</td>
+                        <td style="border:none;padding:0.5mm 0"
+                            th:text="${po.project.code + ' / ' + po.project.name}"></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alamat Pengiriman -->
+    <div th:if="${po.deliveryAddress != null}"
+         style="margin-bottom:4mm;padding:3mm;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;font-size:8.5pt;">
+        <strong>Alamat Pengiriman:</strong> <span th:text="${po.deliveryAddress}"></span>
+    </div>
+
+    <!-- Tabel Item -->
+    <table class="items">
+        <thead>
+        <tr>
+            <th style="width:5%">No</th>
+            <th style="width:38%">Deskripsi Barang / Material</th>
+            <th style="width:10%;text-align:right">Qty</th>
+            <th style="width:7%">Sat</th>
+            <th style="width:18%;text-align:right">Harga Satuan</th>
+            <th style="width:7%;text-align:right">Disc%</th>
+            <th style="width:15%;text-align:right">Total</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="line, stat : ${po.lines}">
+            <td class="text-center" th:text="${stat.index + 1}"></td>
+            <td>
+                <span class="font-bold" th:text="${line.description}"></span>
+                <span th:if="${line.product != null}"
+                      style="display:block;font-size:8pt;color:#6b7280"
+                      th:text="${line.product.code}"></span>
+                <span th:if="${line.notes != null}"
+                      style="display:block;font-size:7.5pt;color:#9ca3af;font-style:italic"
+                      th:text="${line.notes}"></span>
+            </td>
+            <td class="text-right font-mono"
+                th:text="${#numbers.formatDecimal(line.quantity, 1, 2, 'COMMA')}"></td>
+            <td th:text="${line.unit ?: ''}"></td>
+            <td class="text-right font-mono" th:text="${#numbers.formatCurrency(line.unitPrice)}"></td>
+            <td class="text-right" th:text="${line.discountPct} + '%'"></td>
+            <td class="text-right font-mono font-bold" th:text="${#numbers.formatCurrency(line.total)}"></td>
+        </tr>
+        <!-- Empty rows -->
+        <tr th:if="${po.lines.size() < 5}"
+            th:each="i : ${#numbers.sequence(po.lines.size(), 4)}">
+            <td style="height:7mm;"></td>
+            <td></td><td></td><td></td><td></td><td></td><td></td>
+        </tr>
+        </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="totals">
+        <div class="totals-box">
+            <div class="totals-row">
+                <span>Subtotal</span>
+                <span class="font-mono" th:text="${#numbers.formatCurrency(po.subtotal)}"></span>
+            </div>
+            <div class="totals-row"
+                 th:if="${po.discountAmount != null && po.discountAmount.compareTo(T(java.math.BigDecimal).ZERO) > 0}">
+                <span>Diskon</span>
+                <span class="font-mono" th:text="'(' + ${#numbers.formatCurrency(po.discountAmount)} + ')'"></span>
+            </div>
+            <div class="totals-row">
+                <span>PPN 11%</span>
+                <span class="font-mono" th:text="${#numbers.formatCurrency(po.taxAmount)}"></span>
+            </div>
+            <div class="totals-row grand">
+                <span>TOTAL</span>
+                <span class="font-mono" th:text="${#numbers.formatCurrency(po.totalAmount)}"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catatan -->
+    <div th:if="${po.notes != null && !po.notes.isBlank()}" class="notes-box">
+        <strong>Catatan:</strong> <span th:text="${po.notes}"></span>
+    </div>
+
+    <!-- Terms & Conditions default -->
+    <div class="terms-box">
+        <strong>Syarat & Ketentuan:</strong>
+        <ul style="list-style:disc;padding-left:4mm;margin-top:1mm;">
+            <li>Barang harus dikirim sesuai spesifikasi yang tertera dalam PO ini</li>
+            <li>Sertakan Surat Jalan dan Faktur Pajak (e-Faktur) saat pengiriman</li>
+            <li>Kerusakan atau ketidaksesuaian barang wajib dilaporkan dalam 3 hari kerja</li>
+            <li th:if="${po.paymentTerms != null}"
+                th:text="'Pembayaran: ' + ${po.paymentTerms}"></li>
+        </ul>
+    </div>
+
+    <!-- Tanda Tangan -->
+    <div class="signature-section">
+        <div class="signature-box">
+            <div class="signature-title">Disetujui Oleh</div>
+            <div style="font-size:8.5pt;color:#4b5563;margin-bottom:1mm" th:text="${company.companyName}"></div>
+            <div class="signature-line"></div>
+            <div class="signature-label">( _____________________________ )</div>
+            <div style="font-size:7.5pt;color:#9ca3af;margin-top:1mm;">Nama, Jabatan & Tanda Tangan</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-title">Dikonfirmasi Oleh Supplier</div>
+            <div style="font-size:8.5pt;color:#4b5563;margin-bottom:1mm" th:text="${po.vendor?.name}"></div>
+            <div class="signature-line"></div>
+            <div class="signature-label">( _____________________________ )</div>
+            <div style="font-size:7.5pt;color:#9ca3af;margin-top:1mm;">Nama, Jabatan & Stempel</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span th:text="'Dicetak: ' + ${#temporals.format(#temporals.createNow(), 'dd MMMM yyyy HH:mm')}"></span>
+        <span th:text="${company.companyName} + ' — ' + ${po.poNumber}"></span>
+        <span>Halaman 1 dari 1</span>
+    </div>
+
+</div>
+</body>
+</html>

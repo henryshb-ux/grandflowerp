@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/main :: layout(${isEdit} ? 'Edit PO' : 'Buat Purchase Order', ~{::#page-title}, ~{::section}, ~{::script})}"
+      lang="id">
+<head><title>Purchase Order</title></head>
+<body>
+<h1 id="page-title" th:text="${isEdit} ? 'Edit Purchase Order' : 'Buat Purchase Order Baru'">PO</h1>
+
+<section class="max-w-5xl">
+
+    <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-6">
+        <a th:href="@{/purchase-orders}" class="hover:text-primary-600">Purchase Order</a>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+        <span class="text-gray-900" th:text="${isEdit} ? 'Edit' : 'Baru'">Baru</span>
+    </nav>
+
+    <!-- Info dari PR jika ada -->
+    <div th:if="${pr != null}"
+         class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-5 flex items-center justify-between">
+        <div>
+            <p class="text-sm font-semibold text-indigo-900">
+                Membuat PO dari PR <span class="font-mono" th:text="${pr.prNumber}"></span>
+            </p>
+            <p class="text-sm text-indigo-700 mt-0.5" th:text="${pr.subject}"></p>
+        </div>
+        <a th:href="@{/purchase-requests/{id}(id=${pr.id})}"
+           class="text-xs text-indigo-600 hover:underline">Lihat PR →</a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow" x-data="poForm">
+        <form th:action="${isEdit} ? @{/purchase-orders/{id}/edit(id=${poId})} : @{/purchase-orders}"
+              method="post" class="divide-y divide-gray-200">
+
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <input type="hidden" name="prId" th:value="${form.prId}"/>
+
+            <!-- ── Header ────────────────────────────────────── -->
+            <div class="p-6 space-y-5">
+                <h2 class="text-base font-semibold text-gray-800">Informasi Purchase Order</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                    <!-- Vendor (combobox) -->
+                    <div x-data="vendorPicker"
+                         th:data-initial-id="${form.vendorId}"
+                         th:data-initial-label="${vendorLabel}">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Supplier <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" x-model="label"
+                                   @input.debounce.300ms="search()"
+                                   @focus="focusPicker()"
+                                   @click.away="open = false"
+                                   autocomplete="off"
+                                   placeholder="Ketik nama atau kode supplier..."
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                                   required>
+                            <input type="hidden" name="vendorId" :value="selectedId">
+                            <div x-show="open && results.length > 0"
+                                 class="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+                                <template x-for="v in results" :key="v.id">
+                                    <button type="button" @click="select(v)"
+                                            class="block w-full text-left px-3 py-2 text-sm hover:bg-primary-50">
+                                        <span class="font-medium" x-text="v.code"></span>
+                                        <span class="text-gray-400"> — </span>
+                                        <span x-text="v.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Proyek -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Proyek</label>
+                        <select name="projectId"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">-- Tanpa Proyek --</option>
+                            <option th:each="p : ${projects}"
+                                    th:value="${p.id}" th:text="${p.code + ' — ' + p.name}"
+                                    th:selected="${form.projectId != null && form.projectId == p.id}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Tanggal PO -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Tanggal PO <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="poDate" th:value="${form.poDate}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"
+                               required>
+                    </div>
+
+                    <!-- Est. Pengiriman -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Estimasi Pengiriman</label>
+                        <input type="date" name="expectedDelivery" th:value="${form.expectedDelivery}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+
+                    <!-- Terms Pembayaran -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Terms Pembayaran</label>
+                        <select name="paymentTerms"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">-- Pilih --</option>
+                            <option th:each="opt : ${paymentTermOptions}"
+                                    th:value="${opt}" th:text="${opt}"
+                                    th:selected="${form.paymentTerms == opt}">
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Alamat Pengiriman -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Alamat Pengiriman</label>
+                        <textarea name="deliveryAddress" rows="2"
+                                  th:text="${form.deliveryAddress}"
+                                  placeholder="Alamat tujuan pengiriman barang"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"></textarea>
+                    </div>
+
+                    <!-- Catatan -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+                        <textarea name="notes" rows="2"
+                                  th:text="${form.notes}"
+                                  placeholder="Instruksi khusus ke supplier..."
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Line Items ─────────────────────────────────── -->
+            <div class="p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-semibold text-gray-800">Daftar Item PO</h2>
+                        <p class="text-sm text-gray-500 mt-0.5" th:if="${pr != null}">
+                            Item terisi otomatis dari PR. Sesuaikan harga sebelum dikirim ke supplier.
+                        </p>
+                    </div>
+                    <button type="button" @click="addLine()"
+                            class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Tambah Item
+                    </button>
+                </div>
+
+                <!-- Column headers -->
+                <div class="hidden md:grid grid-cols-12 gap-2 px-3 text-xs text-gray-400 uppercase tracking-wide font-medium">
+                    <div class="col-span-1">#</div>
+                    <div class="col-span-3">Deskripsi</div>
+                    <div class="col-span-1 text-right">Qty</div>
+                    <div class="col-span-1">Sat</div>
+                    <div class="col-span-2 text-right">Harga Satuan</div>
+                    <div class="col-span-1 text-right">Disc%</div>
+                    <div class="col-span-1 text-right">PPN%</div>
+                    <div class="col-span-1 text-right">Subtotal</div>
+                    <div class="col-span-1 text-right">Total</div>
+                    <div class="col-span-1"></div>
+                </div>
+
+                <div class="space-y-2">
+                    <template x-for="(line, index) in lines" :key="line._key">
+                        <div class="border border-gray-200 rounded-lg p-3 grid grid-cols-12 gap-2 items-start bg-gray-50 hover:bg-white transition-colors">
+
+                            <div class="hidden md:flex items-center col-span-1 pt-2">
+                                <span class="text-sm text-gray-400" x-text="index + 1"></span>
+                            </div>
+
+                            <!-- Deskripsi -->
+                            <div class="col-span-11 md:col-span-3 space-y-1">
+                                <input type="hidden" :name="'lines[' + index + '].prLineId'" :value="line.prLineId">
+                                <input type="text"
+                                       :name="'lines[' + index + '].description'"
+                                       x-model="line.description"
+                                       placeholder="Deskripsi item *"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                                       required>
+                            </div>
+
+                            <!-- Qty -->
+                            <div class="col-span-4 md:col-span-1">
+                                <label class="md:hidden text-xs text-gray-400">Qty</label>
+                                <input type="number" :name="'lines[' + index + '].quantity'"
+                                       x-model="line.quantity" @input="calcLine(line)"
+                                       step="0.0001" min="0.0001"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-right">
+                            </div>
+
+                            <!-- Satuan -->
+                            <div class="col-span-4 md:col-span-1">
+                                <input type="text" :name="'lines[' + index + '].unit'"
+                                       x-model="line.unit" placeholder="pcs"
+                                       list="unit-options"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm">
+                            </div>
+
+                            <!-- Harga Satuan -->
+                            <div class="col-span-6 md:col-span-2">
+                                <label class="md:hidden text-xs text-gray-400">Harga Satuan</label>
+                                <input type="number" :name="'lines[' + index + '].unitPrice'"
+                                       x-model="line.unitPrice" @input="calcLine(line)"
+                                       step="1" min="0" placeholder="0"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-right font-mono">
+                            </div>
+
+                            <!-- Disc % -->
+                            <div class="col-span-3 md:col-span-1">
+                                <input type="number" :name="'lines[' + index + '].discountPct'"
+                                       x-model="line.discountPct" @input="calcLine(line)"
+                                       step="0.01" min="0" max="100" placeholder="0"
+                                       class="w-full px-3 py-1.5 border border-gray-300 rounded text-sm text-right">
+                            </div>
+
+                            <!-- PPN % -->
+                            <div class="col-span-3 md:col-span-1">
+                                <select :name="'lines[' + index + '].taxPct'"
+                                        x-model="line.taxPct" @change="calcLine(line)"
+                                        class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm">
+                                    <option value="0">0%</option>
+                                    <option value="11">11%</option>
+                                </select>
+                            </div>
+
+                            <!-- Subtotal -->
+                            <div class="col-span-5 md:col-span-1">
+                                <p class="px-2 py-1.5 text-xs text-right text-gray-500"
+                                   x-text="'Rp ' + Math.round(line.subtotal).toLocaleString('id-ID')"></p>
+                            </div>
+
+                            <!-- Total -->
+                            <div class="col-span-5 md:col-span-1">
+                                <p class="px-2 py-1.5 text-sm text-right font-semibold"
+                                   x-text="'Rp ' + Math.round(line.total).toLocaleString('id-ID')"></p>
+                            </div>
+
+                            <!-- Hapus -->
+                            <div class="col-span-1 md:col-span-1 flex justify-end pt-1">
+                                <button type="button" @click="removeLine(index)"
+                                        class="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="lines.length === 0"
+                         class="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center">
+                        <p class="text-gray-400 text-sm">Belum ada item.</p>
+                    </div>
+                </div>
+
+                <!-- Totals -->
+                <div x-show="lines.length > 0" class="flex justify-end mt-4">
+                    <div class="w-72 space-y-2 text-sm bg-gray-50 rounded-lg p-4">
+                        <div class="flex justify-between text-gray-600">
+                            <span>Subtotal</span>
+                            <span class="font-mono" x-text="'Rp ' + Math.round(calcSubtotal()).toLocaleString('id-ID')"></span>
+                        </div>
+                        <div class="flex justify-between text-gray-600 items-center">
+                            <span>Diskon</span>
+                            <div class="flex items-center gap-1">
+                                <span class="text-gray-400 text-xs">Rp</span>
+                                <input type="number" name="discountAmount"
+                                       x-model="discountAmount"
+                                       step="1000" min="0" placeholder="0"
+                                       class="w-32 px-2 py-0.5 border border-gray-300 rounded text-right text-sm font-mono">
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>PPN</span>
+                            <span class="font-mono" x-text="'Rp ' + Math.round(calcTax()).toLocaleString('id-ID')"></span>
+                        </div>
+                        <div class="flex justify-between font-semibold text-gray-900 border-t border-gray-300 pt-2">
+                            <span>TOTAL</span>
+                            <span class="font-mono text-lg"
+                                  x-text="'Rp ' + Math.round(calcSubtotal() - parseFloat(discountAmount||0) + calcTax()).toLocaleString('id-ID')"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <datalist id="unit-options">
+                    <option value="pcs"><option value="unit"><option value="set">
+                    <option value="lot"><option value="meter"><option value="roll">
+                    <option value="drum"><option value="box"><option value="kg"><option value="ls">
+                </datalist>
+            </div>
+
+            <!-- ── Actions ────────────────────────────────────── -->
+            <div class="p-6 flex items-center justify-between">
+                <a th:href="@{/purchase-orders}" class="text-sm text-gray-600 hover:text-gray-900">← Batal</a>
+                <div class="flex gap-3">
+                    <button type="submit" name="_action" value="draft"
+                            class="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">
+                        Simpan Draft
+                    </button>
+                    <button type="submit" name="_action" value="send"
+                            class="px-6 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700">
+                        Simpan & Kirim ke Supplier
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</section>
+
+<script th:inline="javascript" th:attr="nonce=${cspNonce}">
+document.addEventListener('alpine:init', function () {
+    var initialLines = /*[[${initialLines}]]*/ [];
+
+    Alpine.data('poForm', function () {
+        return {
+            lines: [],
+            discountAmount: /*[[${form.discountAmount ?: 0}]]*/ 0,
+            _keyCounter: 0,
+
+            init() {
+                var self = this;
+                if (initialLines && initialLines.length > 0) {
+                    this.lines = initialLines.map(function (l) { return self._makeLine(l); });
+                }
+            },
+
+            _makeLine(data) {
+                data = data || {};
+                var line = {
+                    _key:         this._keyCounter++,
+                    prLineId:     data.prLineId     || '',
+                    description:  data.description  || '',
+                    quantity:     data.quantity      || 1,
+                    unit:         data.unit          || 'pcs',
+                    unitPrice:    data.unitPrice     || 0,
+                    discountPct:  data.discountPct   || 0,
+                    taxPct:       data.taxPct != null ? data.taxPct : 11,
+                    subtotal:     0,
+                    taxAmount:    0,
+                    total:        0
+                };
+                this.calcLine(line);
+                return line;
+            },
+
+            addLine()     { this.lines.push(this._makeLine()); },
+            removeLine(i) { this.lines.splice(i, 1); },
+
+            calcLine(line) {
+                var qty  = parseFloat(line.quantity)   || 0;
+                var price= parseFloat(line.unitPrice)  || 0;
+                var disc = parseFloat(line.discountPct)|| 0;
+                var tax  = parseFloat(line.taxPct)     || 0;
+                var gross    = qty * price;
+                var discAmt  = gross * disc / 100;
+                line.subtotal  = Math.round((gross - discAmt) * 100) / 100;
+                line.taxAmount = Math.round(line.subtotal * tax / 100 * 100) / 100;
+                line.total     = line.subtotal + line.taxAmount;
+            },
+
+            calcSubtotal() {
+                return this.lines.reduce(function (s, l) { return s + (parseFloat(l.subtotal)||0); }, 0);
+            },
+            calcTax() {
+                return this.lines.reduce(function (s, l) { return s + (parseFloat(l.taxAmount)||0); }, 0);
+            }
+        };
+    });
+
+    /* Vendor picker — reuse pola clientPicker dari Balaka */
+    Alpine.data('vendorPicker', function () {
+        return {
+            label: '',
+            selectedId: '',
+            results: [],
+            open: false,
+
+            init() {
+                var el   = this.$el;
+                var initId  = el.dataset.initialId;
+                var initLbl = el.dataset.initialLabel;
+                if (initId)  this.selectedId = initId;
+                if (initLbl) this.label      = initLbl;
+            },
+
+            focusPicker() {
+                this.open = true;
+                if (!this.label) this.search();
+            },
+
+            search() {
+                var q = encodeURIComponent(this.label || '');
+                fetch('/vendors/search?q=' + q, { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.ok ? r.json() : []; })
+                    .then(function (data) { this.results = data; this.open = data.length > 0; }.bind(this));
+            },
+
+            select(v) {
+                this.selectedId = v.id;
+                this.label      = v.code + ' — ' + v.name;
+                this.results    = [];
+                this.open       = false;
+            }
+        };
+    });
+});
+</script>
+</body>
+</html>

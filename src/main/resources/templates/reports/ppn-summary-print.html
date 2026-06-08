@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ringkasan PPN</title>
+    <style th:insert="~{fragments/print-styles :: base}" th:attr="nonce=${cspNonce}">/* loaded via Thymeleaf */</style>
+    <style th:attr="nonce=${cspNonce}">
+        @page { size: A4; margin: 12mm; }
+
+        /* Content Box */
+        .content-box { margin: 4mm 0; padding: 4mm; border: 1px solid #e5e7eb; border-radius: 4px; }
+        .content-box.blue { background: #eff6ff; border-color: #bfdbfe; }
+        .content-box.green { background: #f0fdf4; border-color: #bbf7d0; }
+        .box-row { display: flex; justify-content: space-between; align-items: center; }
+        .box-label { font-size: 10pt; font-weight: 600; }
+        .box-sublabel { font-size: 8pt; color: #6b7280; margin-top: 1mm; }
+        .box-value { font-size: 14pt; font-weight: 700; font-family: 'Consolas', monospace; }
+        .text-blue-700 { color: #1d4ed8; }
+        .text-green-700 { color: #15803d; }
+        .font-mono { font-family: 'Consolas', monospace; }
+
+        /* Result Box */
+        .result-box { margin-top: 5mm; padding: 5mm; border-radius: 6px; text-align: center; }
+        .result-box.payable { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; }
+        .result-box.refundable { background: linear-gradient(135deg, #047857 0%, #059669 100%); color: white; }
+        .result-label { font-size: 9pt; }
+        .result-title { font-size: 11pt; font-weight: 700; margin-top: 1mm; }
+        .result-value { font-size: 20pt; font-weight: 700; font-family: 'Consolas', monospace; margin-top: 2mm; }
+
+        /* Summary Table */
+        .summary-table { margin-top: 5mm; border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden; }
+        .summary-row { display: flex; justify-content: space-between; padding: 2.5mm 3mm; border-bottom: 1px solid #e5e7eb; }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-row.header { background: #f9fafb; font-weight: 600; font-size: 8pt; text-transform: uppercase; color: #6b7280; }
+        .summary-row.total { background: #f9fafb; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="print-controls">
+        <a th:href="@{/reports/ppn-summary(startDate=${startDate}, endDate=${endDate})}" class="btn btn-back">Kembali</a>
+        <button id="btn-print" class="btn btn-print">Cetak</button>
+    </div>
+    <script th:attr="nonce=${cspNonce}">
+        document.getElementById('btn-print').addEventListener('click', function() { globalThis.print(); });
+    </script>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="company-info">
+                <img th:if="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{${company.companyLogoPath}}" alt="Logo" class="company-logo">
+                <img th:unless="${company.companyLogoPath != null and !company.companyLogoPath.isEmpty()}"
+                     th:src="@{${theme.logoPath}}" alt="Logo" class="company-logo">
+                <div class="company-name" th:text="${company.companyName}">Nama Perusahaan</div>
+                <div class="company-details">
+                    <span th:if="${company.companyAddress}" th:text="${company.companyAddress}">Alamat</span><br th:if="${company.companyAddress}">
+                    <span th:if="${company.companyPhone}">Tel: [[${company.companyPhone}]]</span>
+                    <span th:if="${company.companyPhone != null and company.companyEmail != null}"> | </span>
+                    <span th:if="${company.companyEmail}" th:text="${company.companyEmail}">email</span><br th:if="${company.companyPhone != null or company.companyEmail != null}">
+                    <span th:if="${company.taxId}">NPWP: [[${company.taxId}]]</span>
+                </div>
+            </div>
+            <div class="report-title-section">
+                <div class="report-title">RINGKASAN PPN</div>
+                <div class="report-subtitle">VAT Summary Report</div>
+                <div class="report-period" th:text="'Periode: ' + ${#temporals.format(startDate, 'd MMMM yyyy')} + ' - ' + ${#temporals.format(endDate, 'd MMMM yyyy')}">Periode</div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- PPN Keluaran -->
+            <div class="content-box blue">
+                <div class="box-row">
+                    <div>
+                        <div class="box-label text-blue-700">PPN Keluaran (Output VAT)</div>
+                        <div class="box-sublabel">PPN yang dipungut dari penjualan</div>
+                    </div>
+                    <div class="box-value text-blue-700" th:text="${report != null} ? ${#numbers.formatDecimal(report.ppnKeluaran, 1, 'POINT', 0, 'COMMA')} : '0'">0</div>
+                </div>
+            </div>
+
+            <!-- PPN Masukan -->
+            <div class="content-box green">
+                <div class="box-row">
+                    <div>
+                        <div class="box-label text-green-700">PPN Masukan (Input VAT)</div>
+                        <div class="box-sublabel">PPN yang dapat dikreditkan dari pembelian</div>
+                    </div>
+                    <div class="box-value text-green-700" th:text="${report != null} ? '(' + ${#numbers.formatDecimal(report.ppnMasukan, 1, 'POINT', 0, 'COMMA')} + ')' : '(0)'">0</div>
+                </div>
+            </div>
+
+            <!-- Result Box -->
+            <div th:if="${report != null}" class="result-box"
+                 th:classappend="${report.netPPN.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'payable' : 'refundable'">
+                <div class="result-label">VAT Status</div>
+                <div class="result-title" th:text="${report.netPPN.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'PPN KURANG BAYAR' : 'PPN LEBIH BAYAR'">PPN KURANG BAYAR</div>
+                <div class="result-value" th:text="${#numbers.formatDecimal(report.netPPN.abs(), 1, 'POINT', 0, 'COMMA')}">0</div>
+            </div>
+
+            <!-- Summary Table -->
+            <div th:if="${report != null}" class="summary-table">
+                <div class="summary-row header">
+                    <span>Detail Perhitungan</span>
+                    <span>Jumlah</span>
+                </div>
+                <div class="summary-row">
+                    <span>PPN Keluaran (dari penjualan)</span>
+                    <span class="font-mono" th:text="${#numbers.formatDecimal(report.ppnKeluaran, 1, 'POINT', 0, 'COMMA')}">0</span>
+                </div>
+                <div class="summary-row">
+                    <span>PPN Masukan (dari pembelian)</span>
+                    <span class="font-mono" th:text="'(' + ${#numbers.formatDecimal(report.ppnMasukan, 1, 'POINT', 0, 'COMMA')} + ')'">0</span>
+                </div>
+                <div class="summary-row total">
+                    <span>PPN Terutang</span>
+                    <span class="font-mono" th:text="${#numbers.formatDecimal(report.netPPN, 1, 'POINT', 0, 'COMMA')}">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <span th:text="'Dicetak: ' + ${#temporals.format(#temporals.createNow(), 'dd MMMM yyyy HH:mm')}">Dicetak: 01 Jan 2025</span>
+            <span th:text="${company.companyName}">Nama Perusahaan</span>
+        </div>
+    </div>
+</body>
+</html>

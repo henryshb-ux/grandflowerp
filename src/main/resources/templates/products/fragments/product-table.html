@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="id">
+<head><title>Product Table Fragment</title></head>
+<body>
+    <div th:fragment="table" id="product-table">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satuan</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Jual</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <tr th:each="product : ${products}" class="hover:bg-gray-50" th:data-testid="'product-row-' + ${product.code}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <a th:href="@{/products/{id}(id=${product.id})}" class="text-sm font-medium text-primary-600 hover:text-primary-900" th:text="${product.code}" th:data-testid="'product-code-' + ${product.code}">PRD001</a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm text-gray-900" th:text="${product.name}" th:data-testid="'product-name-' + ${product.code}">Produk</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm text-gray-500" th:text="${product.category?.name ?: '-'}">-</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm text-gray-500" th:text="${product.unit}">pcs</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                        <span class="text-sm text-gray-900" th:text="${product.sellingPrice != null ? #numbers.formatDecimal(product.sellingPrice, 0, 'COMMA', 0, 'POINT') : '-'}">0</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span th:if="${product.active}" class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Aktif</span>
+                        <span th:unless="${product.active}" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">Nonaktif</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a th:href="@{/products/{id}(id=${product.id})}" class="text-gray-600 hover:text-gray-900 mr-3">Detail</a>
+                        <a sec:authorize="hasAuthority('PRODUCT_EDIT')" th:href="@{/products/{id}/edit(id=${product.id})}"
+                           class="text-primary-600 hover:text-primary-900">Edit</a>
+                    </td>
+                </tr>
+                <tr th:if="${products.empty}">
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                        Tidak ada produk
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div th:if="${!products.empty}" class="px-6 py-4 border-t border-gray-200">
+            <div class="flex items-center justify-between">
+                <p class="text-sm text-gray-700">
+                    Menampilkan <span th:text="${products.number * products.size + 1}">1</span> -
+                    <span th:text="${products.number * products.size + products.numberOfElements}">10</span>
+                    dari <span th:text="${products.totalElements}">100</span> produk
+                </p>
+                <nav th:if="${products.totalPages > 1}" class="flex items-center gap-2">
+                    <a th:href="@{/products(page=${products.number - 1}, search=${search}, categoryId=${categoryId}, active=${active})}"
+                       th:classappend="${!products.hasPrevious()} ? 'pointer-events-none opacity-50'"
+                       class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Sebelumnya</a>
+                    <a th:href="@{/products(page=${products.number + 1}, search=${search}, categoryId=${categoryId}, active=${active})}"
+                       th:classappend="${!products.hasNext()} ? 'pointer-events-none opacity-50'"
+                       class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Selanjutnya</a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
